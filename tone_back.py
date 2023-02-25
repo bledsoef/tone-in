@@ -3,6 +3,8 @@ import openai
 from dotenv import load_dotenv
 
 load_dotenv()
+
+
 # Load your API key from an environment variable or secret management service
 class AI:
     def __init__(self):
@@ -11,21 +13,47 @@ class AI:
         self.temp = .4
         self.max_token = 200
 
-    def getRating(self,message):
-        prompt = "Rate this text from 1-20 on professionality and return only the number: "+message
-        print (prompt)
+    def getRating(self, message):
+        prompt = "Rate this text from 0-20 on professionality and return only the number: " + message
+        print(prompt)
 
-        response = openai.Completion.create(model=self.model,max_tokens = self.max_token,prompt=prompt, temperature= self.temp)
-
+        response = openai.Completion.create(model=self.model, max_tokens=self.max_token, prompt=prompt,
+                                            temperature=self.temp)
         for result in response.choices:
             return result.text
 
+
 class ToneAnalysis:
-    def __init__(self,listOfMessages):
+    def __init__(self, listOfMessages):
         self.listOfMessages = self.parseMessage(listOfMessages)
         self.total = 0
         self.average = 0
         self.engine = AI()
+        # Model for tone analysis
+
+        self.nonchalant = [0, 1, 2]
+        self.verycasual = [3,4, 5, 6]
+        self.casual = [7, 8, 9, 10]
+        self.professional = [11, 12, 13, 14, 15]
+        self.veryprofessional = [16, 17, 18, 19, 20]
+        self.tone_dict = {"nonchalant": "This type of language and tone in this chat is not appropriate for"
+                                        " a professional or academic setting, and could be "
+                                        " as personal, sarcastic or even confrontational. ",
+                          "very casual": "Conversations in this chat may include personal anecdotes,"
+                                         " jokes, and sarcastic comments that are "
+                                         "not meant to be taken seriously. May include some offensive "
+                                         "language",
+                          "casual": "The tone of this chat is often playful and "
+                                    "may include jokes, memes, and GIFs. "
+                                    "Participants in the chat may use informal language and "
+                                    "emojis to express themselves.",
+                          "professional": "The tone of this chat is appropriate "
+                                          "for a professional or academic setting.",
+                          "very professional": "The tone is helpful and informative, "
+                                               "without any unnecessary or offensive language."
+                                               " Overall, the tone of this chat is appropriate for "
+                                               "a professional or customer service setting."}
+
     def analyzeMessages(self):
 
         for message in self.listOfMessages:
@@ -37,6 +65,20 @@ class ToneAnalysis:
             if "<@U04RC8WT7BN>" in message:
                 slack_message.remove(message)
         return slack_message
+
+    def toneResponse(self):
+        tone_average = self.average
+
+        if tone_average in self.nonchalant:
+            return self.tone_dict["nonchalant"]
+        if tone_average in self.verycasual:
+            return self.tone_dict["very casual"]
+        if tone_average in self.casual:
+            return self.tone_dict["casual"]
+        if tone_average in self.professional:
+            return self.tone_dict["professional"]
+        if tone_average in self.veryprofessional:
+            return self.tone_dict["very professional"]
 
 def main():
     ai = AI()
@@ -53,5 +95,7 @@ def main():
     tone = ToneAnalysis(slack_list)
     tone.analyzeMessages()
     print(tone.average)
+    print(tone.toneResponse())
+
 
 main()
