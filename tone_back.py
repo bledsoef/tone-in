@@ -22,15 +22,15 @@ class AI:
 
 class ToneAnalysis:
     def __init__(self,listOfMessages):
-        self.listOfMessages = listOfMessages
-        self.sum = 0
-        self.average = self.sum // len(listOfMessages)
+        self.listOfMessages = self.parseMessage(listOfMessages)
+        self.total = 0
+        self.average = 0
         self.engine = AI()
     def analyzeMessages(self):
 
         for message in self.listOfMessages:
-            self.sum += self.engine.getRating(message)
-
+            self.total += int(self.engine.getRating(message))
+        self.average = self.total // len(self.listOfMessages)
 
     def parseMessage(self, slack_message):
         for message in slack_message:
@@ -40,8 +40,18 @@ class ToneAnalysis:
 
 def main():
     ai = AI()
-    tone = ToneAnalysis()
-    print(ai.getRating('I won’t be in lab tomorrow because I have dance rehearsals and I have informed my class that I will be on Monday night instead.'))
+    slack_list = ["Yo whats up yall",
+                  "I won’t be in lab tomorrow because I have dance rehearsals and I have informed my class that I will be on Monday night instead.",
+                  "Yo, whats up yall?",
+                  "Yo, whats up yall!",
+                  "Hi and good afternoon, everyone. Are lab hours scheduled for Sunday March 5?",
+                  "What up bitches.",
+                  "Rate this text from 1-20 on professionality and return only the number: Hi and good afternoon, everyone. Are lab hours scheduled for Sunday March 5 bitches?",
+                  "Howdy People?",
+                  "howdy people?"
+                  ]
+    tone = ToneAnalysis(slack_list)
+    tone.analyzeMessages()
+    print(tone.average)
 
-    print(tone.parseMessage(["Hello", "<@U", "Howdy"]))
 main()
