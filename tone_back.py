@@ -32,19 +32,16 @@ class ToneAnalysis:
             self.sum += self.engine.getRating(message)
 
 
-
-
-
-    def parseMessage(self, slack_message: List[str]):
+    def parseMessage(self, slack_message):
         for message in slack_message:
-            if "<@" in message:
+            if "<@U04RC8WT7BN>" in message:
                 slack_message.remove(message)
         return slack_message
 
 def main():
     ai = AI()
+    tone = ToneAnalysis()
     print(ai.getRating('I won’t be in lab tomorrow because I have dance rehearsals and I have informed my class that I will be on Monday night instead.'))
 
-    print(ai.analyzeMessage('what up bitches'))
-    print(ai.parseMessage(["Hello", "<@U", "Howdy"]))
+    print(tone.parseMessage(["Hello", "<@U", "Howdy"]))
 main()
