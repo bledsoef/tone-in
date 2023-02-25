@@ -4,6 +4,7 @@ from typing import List
 import openai
 from dotenv import load_dotenv
 
+
 load_dotenv()
 
 
@@ -33,11 +34,8 @@ class AI:
                 slack_message.remove(message)
         return slack_message
 
-
 def main():
     ai = AI()
     print(ai.analyzeMessage('what up bitches'))
     print(ai.parseMessage(["Hello", "<@U", "Howdy"]))
-
-
 main()
