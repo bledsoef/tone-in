@@ -3,7 +3,6 @@ from conversations_collector import History
 import logging
 from slack_bolt import App  
 from slack_bolt.adapter.socket_mode import SocketModeHandler
-from slack_sdk.web import WebClient
 from slack_sdk.errors import SlackApiError
 from pathlib import Path
 from dotenv import load_dotenv
@@ -18,21 +17,29 @@ app = App(
 )
 
 @app.event("app_mention")
-def get_messages(event, client, say):
+def mention_bot(event, client, say):
     message = event["text"]
+    history = get_message_history(client, event)
+    if "tone" in message.lower():
+        say("The current tone of this channel has been " + history + " recently.")
+    else:
+        say("Hello!")
+
+@app.event("member_joined_channel")
+def user_join(event, client, say):
+    logger.log(logging.DEBUG, "User joined")
+    history = get_message_history(client, event)
+    user = event["user"]
+    say(f"Welcome <@{user}>! The tone of this channel is " + str(history) +". Just keep that in mind while drafting your messages!")
+
+def get_message_history(client, event):
     message_history = []
     try:
         result = client.conversations_history(channel=event["channel"], limit=100)
         for message in result["messages"]:
-            message_history.append(message["text"])
+            message_history.append(message)
     except SlackApiError as e:
         print(f"Error: {e}")
-        if "tone" in message.lower():
-            say("The current tone of this channel has been ")
-    else:
-        say("Hello!")
-
-
 
 
 # @app.event("app_home_opened")
