@@ -35,8 +35,16 @@ class ToneAnalysis:
 
 
 
+    def parseMessage(self, slack_message: List[str]):
+        for message in slack_message:
+            if "<@" in message:
+                slack_message.remove(message)
+        return slack_message
+
 def main():
     ai = AI()
     print(ai.getRating('I won’t be in lab tomorrow because I have dance rehearsals and I have informed my class that I will be on Monday night instead.'))
 
+    print(ai.analyzeMessage('what up bitches'))
+    print(ai.parseMessage(["Hello", "<@U", "Howdy"]))
 main()
