@@ -1,4 +1,0 @@
-Read the channels in  the workspace:    
-channels:read
-Read messages in a given channel:
-channels:history
