@@ -2,24 +2,28 @@ import os
 import openai
 from dotenv import load_dotenv
 
+load_dotenv()
 # Load your API key from an environment variable or secret management service
 class AI:
-    def AI(self):
-        openai.api_key = os.getenv("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")
+    def __init__(self):
+        openai.api_key = os.getenv("API_KEY")
         self.model = "text-davinci-003"
-        self.temp = 1
+        self.temp = 0
         self.max_token = 200
 
     def analyzeMessage(self,message):
-        prompt = "Rate from 1 to 20"
-        response = openai.Completion.create(model=self.model,max_token = self.max_token,prompt=message)
+        prompt = "Rate this text from 1-20 on professionality and return only the number: "+message
+        print (prompt)
 
+        response = openai.Completion.create(model=self.model,max_tokens = self.max_token,prompt=prompt, temperature= self.temp)
+        print(response)
+        for result in response.choices:
+            print(result)
+            return (result.text)
+        response.close()
 
+def main():
+    ai = AI()
+    print(ai.analyzeMessage('what up bitches'))
 
-
-    #
-    # while(1>0):
-    #     p = input('Enter Prompt:')
-    #     response = openai.Completion.create(model="text-davinci-003", prompt=p, temperature=1, max_tokens=1000)
-    #     text=response['choices'][0]['text']
-    #     print(text)
+main()
