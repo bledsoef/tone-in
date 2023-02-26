@@ -28,7 +28,7 @@ tones = {"nonchalant": "This type of language and tone in this chat is not appro
                                         " a professional setting",
                           "very casual": "Conversations in this chat may include jokes, and sarcastic comments that "
                                          "are not very appropriate for professional setting",
-                          "casual": "Participants in the chat may use informal language which may or not be"
+                          "casual": "Participants in the chat use informal language which may not "
                                     "suitable for a professional setting",
                           "professional": "The tone of this chat is appropriate "
                                           "for a professional or academic setting.",
@@ -36,13 +36,45 @@ tones = {"nonchalant": "This type of language and tone in this chat is not appro
                                                "strong ethical communication suitable for a professional setting."}
 
 @app.command("/leaderboard")
-def get_leaderboard(command, client, ack, respond):
+def get_leaderboard(command, client:WebClient, ack, respond):
     ack()
     respond("Generating the leaderboard, this may take a moment...")
-    history = get_message_history_with_user(client, command["channel_id"], limit=None)
-    channelLeaderboard = TextAnalysis(history,'leaderboard')
-    leaderboard = channelLeaderboard.draw_rank()
-    respond(leaderboard)
+    # history = get_message_history_with_user(client, command["channel_id"], limit=None)
+    # channelLeaderboard = TextAnalysis(history,'leaderboard')
+    # leaderboard = channelLeaderboard.draw_rank()
+    # respond(leaderboard)
+    user_id = command["user_id"]
+    # slack_response = client.conversations_open(users=[user_id])
+    # channel = slack_response["channel"]
+    filepath = "/home/fbledsoe/personal_projects/tone-in/rank.png"
+    try:
+        with open(filepath, 'rb') as f:
+            response = client.files_upload(
+                channels=user_id, 
+                file=f, 
+                filename="rank.png", 
+                initial_comment="Leaderboard")
+            image_url  = response['file']['url_private']
+            print(image_url)
+    except SlackApiError as e:
+        print(f"Error sending image: {e}")
+    try:
+        response = client.chat_postMessage(
+            channel=user_id,
+            text="Leaderboard",
+            blocks= [{
+                "type": "image",
+                "title": {
+                    "type": "plain_text",
+                    "text": "Please enjoy this photo of a kitten"
+                },
+                "image_url": image_url,
+                "alt_text": "An incredibly cute kitten."
+                }])
+    except SlackApiError as e:
+        print(f"Error:{e}")
+
+
 
 @app.command("/off")
 def opt_out(respond, client, ack, command):
@@ -106,18 +138,11 @@ def opt_in(respond, client, ack, command):
 
 @app.command("/summary")
 def get_summary(command, client, ack, respond):
-    print('Summary\n')
     ack()
     respond("Generating summary, this may take a moment...")
-
     history = get_message_history_with_user(client, command["channel_id"], limit=30)
-
-    for index, item in enumerate(history):
-        if command["user_name"] in item[1]:
-            history = history[1:index]
-            break
-    chatSum = TextAnalysis(history,'summary')
-    summary = chatSum.summaryResponse()  #apply some function to thus
+    chatSum = TextAnalysis(listOfMessages = history,purpose='summary')
+    summary = chatSum.summaryResponse()
     respond(summary)
 
 @app.command("/tone")
@@ -125,7 +150,7 @@ def get_tone(command, client, ack, respond):
     ack()
     respond("Calculating the tone, this may take a moment...")
     history = get_message_history_with_user(client, command["channel_id"])
-    if not admin_set_tones[command["channel_id"]]:
+    if command["channel_id"] not in admin_set_tones:
         chatA = TextAnalysis(history,'tone')
         output_Message = chatA.toneResponse()
     else:
@@ -146,18 +171,13 @@ def help(command, client, ack, respond):
     */set_tone <tone>* - Admin permissions only, overwites the automatic channel evaluation to set the channel tone for comparisons.\n
     */clear_tone* - Admin permissions only, removes the set tone and reverts the default back to automatic evaluation.""")
 
-# @app.message('test')
-# def on_test_sent(event,client:WebClient):
-#     print('test')
-#     channel_id = event.get("channel")
-#     user_id = event.get("user")
-#     client.chat_postEphemeral(channel=channel_id, user=user_id, blocks=)
     
 @app.message("")
 def on_message_sent(event, client: WebClient):
     print('Message\n')
     channel_id = event.get("channel")
     user_id = event.get("user")
+    print(user_id)
     if user_id in opted_out_users:
         return
     text = event.get("text")
@@ -168,26 +188,29 @@ def on_message_sent(event, client: WebClient):
     else:
         chatA = TextAnalysis(override_tone=admin_set_tones[event["channel"]])
         chatA.toneResponse()
-
+    print("hi")
     if chatA.is_unprofessional(text):
         print('We at chatA')
-        client.chat_postEphemeral(channel=channel_id, user=user_id, blocks= [
-		{
-			"type": "header",
+        client.chat_postEphemeral(channel=channel_id, user=user_id, blocks=[
+        {
+			"type": "title",
 			"text": {
-				"type": "mrkdwn",
-				"text": "\t Text went against channel tone",
-	
+				"type": "plain_text",
+				"text": "Tone check:"
 			}
+		},
+		{
+			"type": "divider"
 		},
 		{
 			"type": "section",
 			"text": {
 				"type": "mrkdwn",
-				"text": "Please conider the following adjustment:\n  '"+str(chatA.edit_professional(text).replace('\n','')+"'")
+				"text": "*Your tone didn't match the channel tone, Here is a suggestion to help:*\n"+str(chatA.edit_professional(text).replace('\n',''))+"'",
 			}
-		}
-	])
+		}])
+		
+		
 # @app.
 
 @app.event("member_joined_channel")
@@ -200,7 +223,7 @@ def user_join(event, client: WebClient, say):
     channel = slack_response["channel"]
     channel_name = client.conversations_info(channel=event["channel"])["channel"]["name"]
     channel_id = channel["id"]
-    client.chat_postMessage(channel=channel_id, text=f"Welcome <@{user_id}>! I saw that you just joined the channel #{channel_name} " + tone + ". Just keep that in mind while drafting your messages!")
+    client.chat_postMessage(channel=channel_id, text=f"Welcome <@{user_id}>! I saw that you just joined the channel #{channel_name} " + tone + " Use /tone-in-help to see more tips on how to toneIn with your colleagues:blush:\n")
 
 def get_message_history(client, channel):
     message_history = []
