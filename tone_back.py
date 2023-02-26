@@ -55,16 +55,17 @@ class ToneAnalysis:
                                                "a professional or customer service setting."}
 
     def analyzeMessages(self):
-
         for message in self.listOfMessages:
             self.total += int(self.engine.getRating(message))
         self.average = self.total // len(self.listOfMessages)
 
-    def parseMessage(self, slack_message):
-        for message in slack_message:
-            if "<@U04RC8WT7BN>" in message:
-                slack_message.remove(message)
-        return slack_message
+    def parseMessage(self, old_slack_message):
+        new_slack_message = []
+        for dict in old_slack_message:
+            for key, value in dict.items():
+                key = key.replace("<@U04RC8WT7BN>", "")
+                new_slack_message.append(value +":" + key)
+        return new_slack_message
 
     def toneResponse(self):
         tone_average = self.average
@@ -82,16 +83,16 @@ class ToneAnalysis:
 
 def main():
     ai = AI()
-    slack_list = ["Yo whats up yall",
-                  "I won’t be in lab tomorrow because I have dance rehearsals and I have informed my class that I will be on Monday night instead.",
-                  "Yo, whats up yall?",
-                  "Yo, whats up yall!",
-                  "Hi and good afternoon, everyone. Are lab hours scheduled for Sunday March 5?",
-                  "What up bitches.",
-                  "Rate this text from 1-20 on professionality and return only the number: Hi and good afternoon, everyone. Are lab hours scheduled for Sunday March 5 bitches?",
-                  "Howdy People?",
-                  "howdy people?"
-                  ]
+    slack_list = [{"<@U04RC8WT7BN>Yo whats up yall":"id",
+                  "I won’t be in lab tomorrow <@U04RC8WT7BN>because I have dance rehearsals and I have informed my class that I will be on Monday night instead.":"id",
+                  "Yo, whats up yall?<@U04RC8WT7BN>":"id",
+                  "Yo, whats up yall!":"id",
+                  "Hi and good afternoon, everyone. Are lab hours scheduled for Sunday March 5?":"id",
+                  "What up bitches.<@U04RC8WT7BN>":"id",
+                  "Rate this text from 1-20 on professionality and return only the number: Hi and good afternoon, everyone. Are lab hours scheduled for Sunday March 5 bitches?":"id",
+                  "Howdy People?<@U04RC8WT7BN>":"id",
+                  "howdy people?":"id"}]
+
     tone = ToneAnalysis(slack_list)
     tone.analyzeMessages()
     print(tone.average)
