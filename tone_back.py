@@ -108,11 +108,11 @@ class TextAnalysis:
         # self.rank(self.scores, self.chatcount)
         return int(average*.90)
 
-    def compareMessage(self,message):
+    def is_unprofessional(self, message):
         new_rating = self.engine.getRating(message)
         if new_rating > self.tone[0]:
-            return True
-        return False
+            return False
+        return True
 
     def rank(self, order):
         self.analyzeMessages()

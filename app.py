@@ -22,7 +22,7 @@ app = App(
 
 # @app.command("/leaderboard")
 # def get_leaderboard(command, client, ack):
-activetone = []
+textanalysis: TextAnalysis = None
 
 @app.command("/summary")
 def get_summary(command, client, ack, respond):
@@ -43,14 +43,17 @@ def get_tone(command, client, ack, respond):
     history = get_message_history_with_user(client, command["channel_id"])
     chatA = TextAnalysis(history,'tone')
     output_Message = chatA.toneResponse()
-    activetone = chatA.to
+    textanalysis = chatA
     respond(str(output_Message))
     
 @app.event("message")
-def on_message_sent(event, client):
+def on_message_sent(event, client: WebClient):
     channel_id = event.get("channel")
     user_id = event.get("user")
     text = event.get("text")
+    if textanalysis.compareMessage(text):
+        client.postEphemeral(channel=channel_id, user=user_id, text='''The tone of your message might not be very well suited
+        for the general trends in this channel. You can still edit it. Would you like some help doing that? ''')
 
 
 
