@@ -24,7 +24,6 @@ class AI:
             res = result.text.replace('\n','')
             # print('prompts:',message,": results",res)
             
-            
             return result.text
 
 
