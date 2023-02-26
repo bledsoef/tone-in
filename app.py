@@ -133,8 +133,25 @@ def get_tone(command, client, ack, respond):
         
     respond(str(output_Message))
 
-# @app.command('/test')
-# def 
+@app.command("/tone-in-help")
+def help(command, client, ack, respond):
+    ack()
+    respond("""
+    *HELP*
+    */tone* - Evaluates the messages in the current channel to determine the tone of the channel.\n
+    */summary* - Compiles the last 30 messages sent in the channel and summarizes them into a few sentences.\n
+    */leaderboard* - Generates a file containing information on the most formal users in a channel for a given time period.\n
+    */on* - Lets the user toggle on the automatic message tone evaluation.\n
+    */off* - Lets the user toggle off the automatic message tone evaluation.\n
+    */set_tone <tone>* - Admin permissions only, overwites the automatic channel evaluation to set the channel tone for comparisons.\n
+    */clear_tone* - Admin permissions only, removes the set tone and reverts the default back to automatic evaluation.""")
+
+# @app.message('test')
+# def on_test_sent(event,client:WebClient):
+#     print('test')
+#     channel_id = event.get("channel")
+#     user_id = event.get("user")
+#     client.chat_postEphemeral(channel=channel_id, user=user_id, blocks=)
     
 @app.message("")
 def on_message_sent(event, client: WebClient):
@@ -145,7 +162,7 @@ def on_message_sent(event, client: WebClient):
         return
     text = event.get("text")
     history = get_message_history_with_user(client, event["channel"])
-    if not admin_set_tones[event["channel"]]:
+    if event["channel"] not in admin_set_tones:
         chatA = TextAnalysis(history,'tone')
         chatA.toneResponse()
     else:
@@ -153,7 +170,24 @@ def on_message_sent(event, client: WebClient):
         chatA.toneResponse()
 
     if chatA.is_unprofessional(text):
-        client.chat_postEphemeral(channel=channel_id, user=user_id, text='The tone of your message might not be very well suited for the general trends in this channel, but no worries! You can still edit it. Here is a sample of what you could edit to: \n ' + chatA.edit_professional(text))
+        print('We at chatA')
+        client.chat_postEphemeral(channel=channel_id, user=user_id, blocks= [
+		{
+			"type": "header",
+			"text": {
+				"type": "mrkdwn",
+				"text": "\t Text went against channel tone",
+	
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "Please conider the following adjustment:\n  '"+str(chatA.edit_professional(text).replace('\n','')+"'")
+			}
+		}
+	])
 # @app.
 
 @app.event("member_joined_channel")
@@ -206,3 +240,4 @@ def get_message_history_with_user(client: WebClient, channel, limit=30):
 
 if __name__ == "__main__":
     SocketModeHandler(app, os.environ["SLACK_APP_TOKEN"]).start()
+
