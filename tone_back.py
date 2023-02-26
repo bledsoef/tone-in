@@ -3,6 +3,7 @@ import openai
 from dotenv import load_dotenv
 import re
 import pandas as pd
+import matplotlib.pyplot as plt
 
 load_dotenv()
 
@@ -134,7 +135,7 @@ class TextAnalysis:
              'Percentage Score': [f'{score}%' for score in self.converted_dict.values()], 'Rank': rank})
 
         # Export to Excel
-        writer = pd.ExcelWriter('output.xlsx', engine='xlsxwriter')
+        writer = pd.ExcelWriter('rank.xlsx', engine='xlsxwriter')
         df.head(num).to_excel(writer, sheet_name='Sheet1', index=False)
 
         # Set column widths
@@ -152,6 +153,38 @@ class TextAnalysis:
 
         # Save and close the workbook
         writer.close()
+
+    def draw_graph(self,  cend="descending", num=3):
+
+        self.ranking(cend)
+        rank = pd.Series(list(self.converted_dict.values())).rank(method='min',
+                                                                  ascending=False if cend == "ascending" else True
+                                                                  ).astype(int).apply(lambda
+                                                                                          x: f'{x}{["st", "nd", "rd"][x % 10 - 1] if x % 100 not in [11, 12, 13] and x % 10 in [1, 2, 3] else "th"}')
+        if cend == "descending":
+            rank = rank[::-1]
+        df = pd.DataFrame(
+            {'Name': list(self.converted_dict.keys()),
+             'Percentage Score': [f'{score}%' for score in self.converted_dict.values()], 'Rank': rank})
+        # Set style
+        plt.style.use('ggplot')
+
+        # Set the slack colors for the bars
+        colors = ["#36C5F0", '#E01E5A', '#ECB22E', '#2EB67D']
+
+        # Plot horizontal bar graph
+        fig, ax = plt.subplots()
+        ax.bar(df['Name'], df['Percentage Score'], align='center', color = colors)
+
+        # Set x and y labels and title
+        ax.set_xlabel('Percentage Score')
+        ax.set_ylabel('Name')
+        ax.set_title('Leader Board')
+
+        # Show the plot
+        plt.savefig('rank.png')
+        plt.show()
+
 
     def parseMessage(self, oldmessage):
 
@@ -208,11 +241,12 @@ def main():
                       ["Howdy People?<@U04RC8WT7BN>", "Ben"],
                       ["howdy people?", "Ben"]]
 
-    # tone = TextAnalysis(slack_list, "summary")
+    tone = TextAnalysis(slack_list, "summary")
     # tone = TextAnalysis(slack_list, "leaderboard")
     # print('response:', tone.toneResponse())
     # print('average:', tone.average)
-    # tone.draw_rank()
+    tone.draw_rank()
+    tone.draw_graph()
     # print(ai.getSummary(tone.parseMessage(slack_list)))
 
 main()
