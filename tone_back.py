@@ -102,7 +102,7 @@ class TextAnalysis:
 
     def is_unprofessional(self, message):
         new_rating = self.engine.getRating(message)
-        if int(new_rating) > self.tone[0]:
+        if int(new_rating) >= self.tone[0]:
             return False
         return True
     
@@ -211,42 +211,58 @@ class TextAnalysis:
         if not self.override_tone:
             tone_average = self.analyzeMessages()
 
-        if tone_average in [0, 1, 2] or self.override_tone == "nonchalant":
-            self.tone = [0, 1, 2]
-            return self.tone_dict["nonchalant"]
-        if tone_average in [3, 4, 5, 6] or self.override_tone == "very casual":
-            self.tone = [3, 4, 5, 6]
-            return self.tone_dict["very casual"]
-        if tone_average in [7, 8, 9, 10] or self.override_tone == "casual":
-            self.tone = [7, 8, 9, 10]
-            return self.tone_dict["casual"]
-        if tone_average in [11, 12, 13, 14, 15] or self.override_tone == "professional":
-            self.tone = [11, 12, 13, 14, 15]
-            return self.tone_dict["professional"]
-        if tone_average in [16, 17, 18, 19, 20] or self.override_tone == "very professional":
-            self.tone = [16, 17, 18, 19, 20]
-            return self.tone_dict["very professional"]
+            if tone_average in [0, 1, 2]:
+                self.tone = [0, 1, 2]
+                return self.tone_dict["nonchalant"]
+            if tone_average in [3, 4, 5, 6]:
+                self.tone = [3, 4, 5, 6]
+                return self.tone_dict["very casual"]
+            if tone_average in [7, 8, 9, 10]:
+                self.tone = [7, 8, 9, 10]
+                return self.tone_dict["casual"]
+            if tone_average in [11, 12, 13, 14, 15]:
+                self.tone = [11, 12, 13, 14, 15]
+                return self.tone_dict["professional"]
+            if tone_average in [16, 17, 18, 19, 20]:
+                self.tone = [16, 17, 18, 19, 20]
+                return self.tone_dict["very professional"]
+        else: 
+            if self.override_tone == "nonchalant":
+                self.tone = [0, 1, 2]
+                return self.tone_dict["nonchalant"]
+            if self.override_tone == "very casual":
+                self.tone = [3, 4, 5, 6]
+                return self.tone_dict["very casual"]
+            if self.override_tone == "casual":
+                self.tone = [7, 8, 9, 10]
+                return self.tone_dict["casual"]
+            if self.override_tone == "professional":
+                self.tone = [11, 12, 13, 14, 15]
+                return self.tone_dict["professional"]
+            if self.override_tone == "very professional":
+                self.tone = [16, 17, 18, 19, 20]
+                return self.tone_dict["very professional"]
 
-def main():
-    ai = AI()
-    slack_list = [["<@U04RC8WT7BN>Yo whats up yall", "John"],
-                      ["I won’t be in lab tomorrow <@U04RC8WT7BN>because I have dance rehearsals and I have informed my "
-                       "class that I will be on Monday night instead.", "John"],
-                      ["Yo, whats up yall?<@U04RC8WT7BN>", "Gina"],
-                      ["Yo, whats up yall!", "Gina"],
-                      ["Hi and good afternoon, everyone. Are lab hours scheduled for Sunday March 5?", "Nate"],
-                      ["What up bitches.<@U04RC8WT7BN>", "Nate"],
-                      ["Hi and good afternoon, "
-                       "everyone. Are lab hours scheduled for Sunday March 5 bitches?", "Ben"],
-                      ["Howdy People?<@U04RC8WT7BN>", "Ben"],
-                      ["howdy people?", "Ben"]]
+# def main():
+#     ai = AI()
+#     slack_list = [["<@U04RC8WT7BN>Yo whats up yall", "John"],
+#                       ["I won’t be in lab tomorrow <@U04RC8WT7BN>because I have dance rehearsals and I have informed my "
+#                        "class that I will be on Monday night instead.", "John"],
+#                       ["Yo, whats up yall?<@U04RC8WT7BN>", "Gina"],
+#                       ["Yo, whats up yall!", "Gina"],
+#                       ["Hi and good afternoon, everyone. Are lab hours scheduled for Sunday March 5?", "Nate"],
+#                       ["What up bitches.<@U04RC8WT7BN>", "Nate"],
+#                       ["Hi and good afternoon, "
+#                        "everyone. Are lab hours scheduled for Sunday March 5 bitches?", "Ben"],
+#                       ["Howdy People?<@U04RC8WT7BN>", "Ben"],
+#                       ["howdy people?", "Ben"]]
 
-    tone = TextAnalysis(slack_list, "summary")
-    # tone = TextAnalysis(slack_list, "leaderboard")
-    # print('response:', tone.toneResponse())
-    # print('average:', tone.average)
-    tone.draw_rank()
-    tone.draw_graph()
+#     tone = TextAnalysis(slack_list, "summary")
+#     # tone = TextAnalysis(slack_list, "leaderboard")
+#     # print('response:', tone.toneResponse())
+#     # print('average:', tone.average)
+#     tone.draw_rank()
+#     tone.draw_graph()
     # print(ai.getSummary(tone.parseMessage(slack_list)))
 
-main()
+# main()
