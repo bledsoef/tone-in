@@ -20,9 +20,17 @@ app = App(
     signing_secret=os.environ["SLACK_SIGNING_SECRET"]
 )
 
-# @app.command("/leaderboard")
-# def get_leaderboard(command, client, ack):
-    
+@app.message("")
+def get_message(message, client):
+    print(message)
+
+@app.command("/leaderboard")
+def get_leaderboard(command, client, ack, respond):
+    ack()
+    history = get_message_history_with_user(client, command["channel_id"], limit=None)
+    channelLeaderboard = TextAnalysis(history,'leaderboard')
+    leaderboard = channelLeaderboard.draw_rank()
+    respond(leaderboard)
 
 @app.command("/summary")
 def get_summary(command, client, ack, respond):
