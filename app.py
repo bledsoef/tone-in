@@ -1,5 +1,4 @@
 import os
-from conversations_collector import History
 import logging
 from slack_bolt import App  
 from slack_bolt.adapter.socket_mode import SocketModeHandler
@@ -19,6 +18,20 @@ app = App(
     token=os.environ["SLACK_BOT_TOKEN"],    
     signing_secret=os.environ["SLACK_SIGNING_SECRET"]
 )
+
+@app.command("/summary")
+def get_summary(command, client, ack, respond):
+    ack()
+    print(command)
+    history = get_message_history_with_user(client, command["channel_id"], limit=10)
+    for index, item in enumerate(history):
+        if command["user_name"] in item[1]:
+            history = history[1:index]
+            break
+    print("Wassup")
+    # summary = history #apply some function to thus
+    # respond(summary)
+
 @app.command("/tone")
 def mention_bot(command, client, ack, respond):
     ack()
@@ -44,18 +57,18 @@ def get_message_history(client, channel):
             message_history.append(message)
     except SlackApiError as e:
         print(f"Error: {e}")
-        return message_history  
+        return message_history
 
-def get_message_history_with_user(client:WebClient, channel):
+def get_message_history_with_user(client:WebClient, channel, limit=100):
     message_history = []
     try:
-        result = client.conversations_history(channel=channel, limit=4)
+        result = client.conversations_history(channel=channel, limit=limit)
         messages = result["messages"]
         for message in messages:
             text = message["text"]
             user = message["user"]
             name = client.users_info(user=user).get("user")["real_name"]
-            message_history.append({text:name})
+            message_history.append([text,name])
     except SlackApiError as e:
         print(message_history[0:4])
     return message_history
