@@ -13,6 +13,7 @@ class AI:
         self.temp = .4
         self.max_token = 200
 
+
     def getRating(self, message):
         prompt = "Rate this slack text from 0-20 on professionalism on tone and vocabulary, and only tell me the number, no words!:" + message
 
