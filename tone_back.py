@@ -91,8 +91,7 @@ def main():
                   ["Yo, whats up yall!", "id"],
                   ["Hi and good afternoon, everyone. Are lab hours scheduled for Sunday March 5?", "id"],
                   ["What up bitches.<@U04RC8WT7BN>", "id"],
-                  ["Rate this text from 1-20 on professionality and return only the number: Hi and good afternoon, "
-                   "everyone. Are lab hours scheduled for Sunday March 5 bitches?", "id"],
+                  ["Hi and good afternoon,everyone. Are lab hours scheduled for Sunday March 5 bitches?", "id"],
                   ["Howdy People?<@U04RC8WT7BN>", "id"],
                   ["howdy people?", "id"]]
 
