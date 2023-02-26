@@ -10,10 +10,12 @@ from tone_back import TextAnalysis
 from multiprocessing import Process
 from dotenv import load_dotenv
 from time import sleep
+from urllib.parse import quote
 env_path = Path('.') / '.env'
 load_dotenv(dotenv_path=env_path)
 logger = logging.getLogger(__name__)
 chatA: TextAnalysis = None
+
 app = App(
     token=os.environ["SLACK_BOT_TOKEN"],    
     signing_secret=os.environ["SLACK_SIGNING_SECRET"]
@@ -64,9 +66,10 @@ def set_tone(respond, client, ack, command):
         respond("Invalid tone. Use /tone-in-help to learn more about the commands.")
         return
     
-    if admin_set_tones[command["channel_id"]] == tone:
-        respond("Tone is already set to " + tone)
-        return 
+    if command["channel_id"] in admin_set_tones:
+        if admin_set_tones[command["channel_id"]] == tone:
+            respond("Tone is already set to " + tone)
+            return 
 
     admin_set_tones[command["channel_id"]] = tone
     respond("Tone set to " + tone + ".")
@@ -142,8 +145,13 @@ def on_message_sent(event, client: WebClient):
         return
     text = event.get("text")
     history = get_message_history_with_user(client, event["channel"])
-    chatA = TextAnalysis(history,'tone')
-    chatA.toneResponse()
+    if not admin_set_tones[event["channel"]]:
+        chatA = TextAnalysis(history,'tone')
+        chatA.toneResponse()
+    else:
+        chatA = TextAnalysis(override_tone=admin_set_tones[event["channel"]])
+        chatA.toneResponse()
+
     if chatA.is_unprofessional(text):
         client.chat_postEphemeral(channel=channel_id, user=user_id, text='The tone of your message might not be very well suited for the general trends in this channel, but no worries! You can still edit it. Here is a sample of what you could edit to: \n ' + chatA.edit_professional(text))
 # @app.
