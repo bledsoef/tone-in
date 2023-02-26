@@ -115,18 +115,7 @@ def main():
                   ["Hi and good afternoon,everyone. Are lab hours scheduled for Sunday March 5 bitches?", "id"],
                   ["Howdy People?<@U04RC8WT7BN>", "id"],
                   ["howdy people?", "id"]]
-# def main():
-#     ai = AI()
-#     slack_list = ['Anish Kharel: Good morning everyone, I hope everyone had a good weekend.',
-#                   "Finn:But yes I think the plan was to nap on and off.",
-#                   "Finn :If anyone prefers otherwise, we can figure something out.",
-#                   "Anish Kharel:Yes,that what we did last time and it was perfectly fine.",
-#                   "Daize Njounkeng: Have you guys already started brainstorming idea?",
-#                   "Daize Njounkeng: Would you guys like to build something with Open Ai API?",
-#                   "Anish Kharel: Yes, that sounds like alot of fun!"
-#
-#           ]
->>>>>>> 0a8fe7fe9cba654c2d63a354914ddedd6d70d897
+
 
     # slack_list = ["Daize Njounkeng:Hey I reached out to Moise should hear from him this evening.",
     #               "Daize Njounkeng:Just making sure, we are going to take napsin the hackathon classrooms yes? Or we are planning on lodging somewhere.",
