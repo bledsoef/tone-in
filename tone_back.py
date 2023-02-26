@@ -14,10 +14,9 @@ class AI:
         self.max_token = 200
 
 
+
     def getRating(self, message):
         prompt = "Rate this slack text from 0-20 on professionalism on tone and vocabulary, and only tell me the number, no words!:" + message
-
-
         response = openai.Completion.create(model=self.model, max_tokens=self.max_token, prompt=prompt,
                                             temperature=.4)
         for result in response.choices:
@@ -25,12 +24,15 @@ class AI:
             return result.text
 
 
+
+
+
     def getSummary(self, allChatText):
         prompt = 'Provide a brief summary for the following chats with people names included.  : \n'
         for chat in allChatText:
             prompt += chat + '\n'
 
-        response = openai.Completion.create(model='text-davinci-003',max_tokens=400,prompt=prompt, temperature=1)
+        response = openai.Completion.create(model='text-davinci-003',max_tokens=400,prompt=prompt, temperature=.7)
 
         for result in response.choices:
 
@@ -43,7 +45,11 @@ class TextAnalysis:
         self.listOfMessages = self.parseMessage(listOfMessages)
         self.total = 0
         self.engine = AI()
+        self.scores = {}
+        self.chatcount = {}
+        self.converted_dict = {}
         self.average = self.analyzeMessages()
+
         # Model for tone analysis
 
         self.nonchalant = [0, 1, 2]
@@ -75,11 +81,40 @@ class TextAnalysis:
             resp = self.engine.getRating(message)
             try:
                 self.total += int(resp)
+                user = str(message.split(':')[0])
+                print("This is user", user)
+                if user not in self.scores:
+                    self.scores[user] = int(resp)
+                    self.chatcount[user] = 1
+                else:
+                    self.scores[user] = self.scores[user] + int(resp)
+                    self.chatcount[user] += 1
+                print(self.scores)
+                print(self.chatcount)
+
             except:
                 print('BAD AI')
-
+        # self.rank(self.scores, self.chatcount)
+        # self.rank(self.scores, self.chatcount)
         average = self.total // len(self.listOfMessages)
-        return int(average*.90 )
+        return int(average*.90)
+
+    def rank(self, order):
+        self.analyzeMessages()
+        print(self.scores)
+        for user in self.scores:
+            self.scores[user] = round((self.scores[user]/(20 * self.chatcount[user]))*100)
+        sorted_scores = sorted(self.scores.items(), key=lambda x: x[1], reverse = True if order == "ascending" else False)
+        self.converted_dict = dict(sorted_scores)
+        print(self.converted_dict)
+        return self.converted_dict
+
+    def draw_rank(self):
+        self.rank("ascending")
+        "Name\tScore"
+        for i in self.converted_dict.items():
+            print("%s\t\t%s" % (i[0], i[1]))
+
 
     def parseMessage(self, old_slack_message):
         new_slack_message = []
@@ -105,50 +140,25 @@ class TextAnalysis:
 
 def main():
     ai = AI()
-    slack_list = [["<@U04RC8WT7BN>Yo whats up yall", "id"],
+    slack_list = [["<@U04RC8WT7BN>Yo whats up yall", "John"],
                   ["I won’t be in lab tomorrow <@U04RC8WT7BN>because I have dance rehearsals and I have informed my "
-                   "class that I will be on Monday night instead.", "id"],
-                  ["Yo, whats up yall?<@U04RC8WT7BN>", "id"],
-                  ["Yo, whats up yall!", "id"],
-                  ["Hi and good afternoon, everyone. Are lab hours scheduled for Sunday March 5?", "id"],
-                  ["What up bitches.<@U04RC8WT7BN>", "id"],
-                  ["Hi and good afternoon,everyone. Are lab hours scheduled for Sunday March 5 bitches?", "id"],
-                  ["Howdy People?<@U04RC8WT7BN>", "id"],
-                  ["howdy people?", "id"]]
+                   "class that I will be on Monday night instead.", "John"],
+                  ["Yo, whats up yall?<@U04RC8WT7BN>", "Gina"],
+                  ["Yo, whats up yall!", "Gina"],
+                  ["Hi and good afternoon, everyone. Are lab hours scheduled for Sunday March 5?", "Nate"],
+                  ["What up bitches.<@U04RC8WT7BN>", "Nate"],
+                  ["Hi and good afternoon, "
+                   "everyone. Are lab hours scheduled for Sunday March 5 bitches?", "Ben"],
+                  ["Howdy People?<@U04RC8WT7BN>", "Ben"],
+                  ["howdy people?", "Ben"]]
 
+    tone = TextAnalysis(slack_list)
 
-    # slack_list = ["Daize Njounkeng:Hey I reached out to Moise should hear from him this evening.",
-    #               "Daize Njounkeng:Just making sure, we are going to take napsin the hackathon classrooms yes? Or we are planning on lodging somewhere.",
-    #               "Finn:I think we're all just gonna get coked out and not need to sleep",
-    #               "Finn:But yes I think the plan was to nap on and off.",
-    #               "Finn :If anyone prefers otherwise we can figure something out.",
-    #               "Slackbot:@moise dk has been added to the conversation by Daize Njounkeng.",
-    #               "Anish Kharel:yes that what we did last time",
-    #               "Anish Kharel:it wasn't the best but it was aight",
-    #               "Daize Njounkeng: So already started brainstorming application ideas.",
-    #               "Daize Njounkeng: Would you guys like to build something with Open Ai API?",
-    #               "Finn: That sounds interesting, what are you thinking?",
-    #               ]
-    # tone = TextAnalysis(slack_list)
-    # slack_list = [["<@U04RC8WT7BN>Yo whats up yall", "id"],
-    #               ["I won’t be in lab tomorrow <@U04RC8WT7BN>because I have dance rehearsals and I have informed my "
-    #                "class that I will be on Monday night instead.", "id"],
-    #               ["Yo, whats up yall?<@U04RC8WT7BN>", "id"],
-    #               ["Yo, whats up yall!", "id"],
-    #               ["Hi and good afternoon, everyone. Are lab hours scheduled for Sunday March 5?", "id"],
-    #               ["What up bitches.<@U04RC8WT7BN>", "id"],
-    #               ["Rate this text from 1-20 on professionality and return only the number: Hi and good afternoon, "
-    #                "everyone. Are lab hours scheduled for Sunday March 5 bitches?", "id"],
-    #               ["Howdy People?<@U04RC8WT7BN>", "id"],
-    #               ["howdy people?", "id"]]
+    tone.draw_rank()
+    print(tone.average)
+    print(tone.toneResponse())
+    print('average:',tone.average)
+    print(ai.getSummary(tone.parseMessage(slack_list)))
+    print(tone.toneResponse())
 
-    # tone = ToneAnalysis(slack_list)
-    # tone.analyzeMessages()
-    # print(tone.average)
-    # print(tone.toneResponse())
-    # print('average:',tone.average)
-    # print(ai.getSummary(slack_list))
-    # print(tone.toneResponse())
-
-
-# main()
+main()
