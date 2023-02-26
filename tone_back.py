@@ -13,26 +13,41 @@ class AI:
         self.temp = .4
         self.max_token = 200
 
+
     def getRating(self, message):
-        prompt = "Rate this text from 0-20 on professionality and return only the number: " + message
-        print(prompt)
+        prompt = "Rate this slack text from 0-20 on professionalism on tone and vocabulary, and only tell me the number, no words!:" + message
+
 
         response = openai.Completion.create(model=self.model, max_tokens=self.max_token, prompt=prompt,
-                                            temperature=self.temp)
+                                            temperature=.4)
         for result in response.choices:
+            print('prompts:',message,": results",result.text)
             return result.text
 
 
-class ToneAnalysis:
+    def getSummary(self, allChatText):
+        prompt = 'Provide a brief summary for the following chats with people names included.  : \n'
+        for chat in allChatText:
+            prompt += chat + '\n'
+
+        response = openai.Completion.create(model='text-davinci-003',max_tokens=400,prompt=prompt, temperature=1)
+
+        for result in response.choices:
+
+            return result.text
+
+
+
+class TextAnalysis:
     def __init__(self, listOfMessages):
         self.listOfMessages = self.parseMessage(listOfMessages)
         self.total = 0
-        self.average = 0
         self.engine = AI()
+        self.average = self.analyzeMessages()
         # Model for tone analysis
 
         self.nonchalant = [0, 1, 2]
-        self.verycasual = [3, 4, 5, 6]
+        self.verycasual = [3,4, 5, 6]
         self.casual = [7, 8, 9, 10]
         self.professional = [11, 12, 13, 14, 15]
         self.veryprofessional = [16, 17, 18, 19, 20]
@@ -55,9 +70,16 @@ class ToneAnalysis:
                                                "a professional or customer service setting."}
 
     def analyzeMessages(self):
+
         for message in self.listOfMessages:
-            self.total += int(self.engine.getRating(message))
-        self.average = self.total // len(self.listOfMessages)
+            resp = self.engine.getRating(message)
+            try:
+                self.total += int(resp)
+            except:
+                print('BAD AI')
+
+        average = self.total // len(self.listOfMessages)
+        return int(average*.90 )
 
     def parseMessage(self, old_slack_message):
         new_slack_message = []
@@ -81,7 +103,6 @@ class ToneAnalysis:
         if tone_average in self.veryprofessional:
             return self.tone_dict["very professional"]
 
-
 def main():
     ai = AI()
     slack_list = [["<@U04RC8WT7BN>Yo whats up yall", "id"],
@@ -94,10 +115,51 @@ def main():
                   ["Hi and good afternoon,everyone. Are lab hours scheduled for Sunday March 5 bitches?", "id"],
                   ["Howdy People?<@U04RC8WT7BN>", "id"],
                   ["howdy people?", "id"]]
+# def main():
+#     ai = AI()
+#     slack_list = ['Anish Kharel: Good morning everyone, I hope everyone had a good weekend.',
+#                   "Finn:But yes I think the plan was to nap on and off.",
+#                   "Finn :If anyone prefers otherwise, we can figure something out.",
+#                   "Anish Kharel:Yes,that what we did last time and it was perfectly fine.",
+#                   "Daize Njounkeng: Have you guys already started brainstorming idea?",
+#                   "Daize Njounkeng: Would you guys like to build something with Open Ai API?",
+#                   "Anish Kharel: Yes, that sounds like alot of fun!"
+#
+#           ]
+>>>>>>> 0a8fe7fe9cba654c2d63a354914ddedd6d70d897
 
-    tone = ToneAnalysis(slack_list)
-    tone.analyzeMessages()
-    print(tone.average)
-    print(tone.toneResponse())
+    # slack_list = ["Daize Njounkeng:Hey I reached out to Moise should hear from him this evening.",
+    #               "Daize Njounkeng:Just making sure, we are going to take napsin the hackathon classrooms yes? Or we are planning on lodging somewhere.",
+    #               "Finn:I think we're all just gonna get coked out and not need to sleep",
+    #               "Finn:But yes I think the plan was to nap on and off.",
+    #               "Finn :If anyone prefers otherwise we can figure something out.",
+    #               "Slackbot:@moise dk has been added to the conversation by Daize Njounkeng.",
+    #               "Anish Kharel:yes that what we did last time",
+    #               "Anish Kharel:it wasn't the best but it was aight",
+    #               "Daize Njounkeng: So already started brainstorming application ideas.",
+    #               "Daize Njounkeng: Would you guys like to build something with Open Ai API?",
+    #               "Finn: That sounds interesting, what are you thinking?",
+    #               ]
+    # tone = TextAnalysis(slack_list)
+    # slack_list = [["<@U04RC8WT7BN>Yo whats up yall", "id"],
+    #               ["I won’t be in lab tomorrow <@U04RC8WT7BN>because I have dance rehearsals and I have informed my "
+    #                "class that I will be on Monday night instead.", "id"],
+    #               ["Yo, whats up yall?<@U04RC8WT7BN>", "id"],
+    #               ["Yo, whats up yall!", "id"],
+    #               ["Hi and good afternoon, everyone. Are lab hours scheduled for Sunday March 5?", "id"],
+    #               ["What up bitches.<@U04RC8WT7BN>", "id"],
+    #               ["Rate this text from 1-20 on professionality and return only the number: Hi and good afternoon, "
+    #                "everyone. Are lab hours scheduled for Sunday March 5 bitches?", "id"],
+    #               ["Howdy People?<@U04RC8WT7BN>", "id"],
+    #               ["howdy people?", "id"]]
 
-main()
+    # tone = ToneAnalysis(slack_list)
+    # tone.analyzeMessages()
+    # print(tone.average)
+    # print(tone.toneResponse())
+    # print('average:',tone.average)
+    # print(ai.getSummary(slack_list))
+    # print(tone.toneResponse())
+
+
+# main()
