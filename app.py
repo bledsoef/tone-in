@@ -21,12 +21,17 @@ app = App(
 )
 
 opted_out_users = []
+NEW_MESSAGES_COUNT = 0
+message_history = []
+
 
 @app.command("/leaderboard")
 def get_leaderboard(command, client, ack, respond):
     ack()
     respond("Generating the leaderboard, this may take a moment...")
-    history = get_message_history_with_user(client, command["channel_id"], limit=None)
+    if len(message_history) == 0:
+        message_history = get_message_history_with_user(client, command["channel_id"], limit=None)
+    history = message_history
     channelLeaderboard = TextAnalysis(history,'leaderboard')
     leaderboard = channelLeaderboard.draw_rank()
     respond(leaderboard)
@@ -58,9 +63,9 @@ def get_summary(command, client, ack, respond):
     print('Summary\n')
     ack()
     respond("Generating summary, this may take a moment...")
-
-    history = get_message_history_with_user(client, command["channel_id"], limit=30)
-
+    if len(message_history) == 0:
+        message_history = get_message_history_with_user(client, command["channel_id"], limit=30)
+    history = message_history
     for index, item in enumerate(history):
         if command["user_name"] in item[1]:
             history = history[1:index]
@@ -74,7 +79,10 @@ def get_tone(command, client, ack, respond):
     print('TONE\n')
     ack()
     respond("Calculating the tone, this may take a moment...")
-    history = get_message_history_with_user(client, command["channel_id"])
+    if len(message_history) == 0:
+        message_history = get_message_history_with_user(client, command["channel_id"])
+    history = message_history
+    history = message_history
     chatA = TextAnalysis(history,'tone')
     output_Message = chatA.toneResponse()
     textanalysis = chatA
@@ -83,12 +91,16 @@ def get_tone(command, client, ack, respond):
 @app.message("")
 def on_message_sent(event, client: WebClient):
     print('Message\n')
+    NEW_MESSAGES_COUNT += 1
     channel_id = event.get("channel")
     user_id = event.get("user")
     if user_id in opted_out_users:
         return
     text = event.get("text")
-    history = get_message_history_with_user(client, event["channel"])
+    if NEW_MESSAGES_COUNT == 20:
+        message_history = get_message_history_with_user(client, event["channel"])
+        NEW_MESSAGES_COUNT = 0
+    history = message_history
     chatA = TextAnalysis(history,'tone')
     chatA.toneResponse()
     if chatA.is_unprofessional(text):
@@ -117,7 +129,7 @@ def get_message_history(client, channel):
     return message_history
 
 def get_message_history_with_user(client: WebClient, channel, limit=30):
-    message_history = []
+    local_message_history = []
     try:
         result = client.conversations_history(channel=channel, limit=limit)
         messages = result["messages"]
@@ -138,11 +150,11 @@ def get_message_history_with_user(client: WebClient, channel, limit=30):
                     i += 1
             user = message["user"]
             name = client.users_info(user=user).get("user")["real_name"]
-            message_history.append([text,name])
+            local_message_history.append([text,name])
     except SlackApiError as e:
         print(e)
-        print(message_history[0:4])
-    return message_history
+        print(local_message_history[0:4])
+    return local_message_history
 
 if __name__ == "__main__":
     SocketModeHandler(app, os.environ["SLACK_APP_TOKEN"]).start()
