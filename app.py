@@ -20,22 +20,46 @@ app = App(
     signing_secret=os.environ["SLACK_SIGNING_SECRET"]
 )
 
-@app.message("")
-def get_message(message, client):
-    print(message)
+opted_out_users = []
 
 @app.command("/leaderboard")
 def get_leaderboard(command, client, ack, respond):
     ack()
+    respond("Generating the leaderboard, this may take a moment...")
     history = get_message_history_with_user(client, command["channel_id"], limit=None)
     channelLeaderboard = TextAnalysis(history,'leaderboard')
     leaderboard = channelLeaderboard.draw_rank()
     respond(leaderboard)
 
+@app.command("/off")
+def opt_out(respond, client, ack, command):
+    ack()
+    user = command["user_id"]
+    if user in opted_out_users:
+        respond("Already opted out of automatic tone checking!")
+        return
+    opted_out_users.append(user)
+    respond("You are now opted out of automatic tone checking! Use /on to opt back in.")
+    
+
+@app.command("/on")
+def opt_in(respond, client, ack, command):
+    ack()
+    user = command["user_id"]
+    if user not in opted_out_users:
+        respond("Already opted in to automatic tone checking!")
+        return
+    opted_out_users.remove(user)
+    respond("You have now opted in to recieve automatic tone checking! Use /off to opt out.")
+
+
 @app.command("/summary")
 def get_summary(command, client, ack, respond):
+    print('Summary\n')
     ack()
-    history = get_message_history_with_user(client, command["channel_id"], limit=None)
+    respond("Generating summary, this may take a moment...")
+
+    history = get_message_history_with_user(client, command["channel_id"], limit=30)
 
     for index, item in enumerate(history):
         if command["user_name"] in item[1]:
@@ -47,21 +71,28 @@ def get_summary(command, client, ack, respond):
 
 @app.command("/tone")
 def get_tone(command, client, ack, respond):
+    print('TONE\n')
     ack()
+    respond("Calculating the tone, this may take a moment...")
     history = get_message_history_with_user(client, command["channel_id"])
     chatA = TextAnalysis(history,'tone')
     output_Message = chatA.toneResponse()
     textanalysis = chatA
     respond(str(output_Message))
     
-@app.event("message")
+@app.message("")
 def on_message_sent(event, client: WebClient):
+    print('Message\n')
     channel_id = event.get("channel")
     user_id = event.get("user")
+    if user_id in opted_out_users:
+        return
     text = event.get("text")
-    if textanalysis.compareMessage(text):
-        client.postEphemeral(channel=channel_id, user=user_id, text='''The tone of your message might not be very well suited
-        for the general trends in this channel. You can still edit it. Would you like some help doing that? ''')
+    history = get_message_history_with_user(client, event["channel"])
+    chatA = TextAnalysis(history,'tone')
+    chatA.toneResponse()
+    if chatA.is_unprofessional(text):
+        client.chat_postEphemeral(channel=channel_id, user=user_id, text='The tone of your message might not be very well suited for the general trends in this channel, but no worries! You can still edit it. Here is a sample of what you could edit to: \n ' + chatA.edit_professional(text))
 
 
 
@@ -78,14 +109,14 @@ def user_join(event, client: WebClient, say):
 def get_message_history(client, channel):
     message_history = []
     try:
-        result = client.conversations_history(channel=channel, limit=100)
+        result = client.conversations_history(channel=channel, limit=30)
         for message in result["messages"]:
             message_history.append(message["text"])
     except SlackApiError as e:
         print(f"Error: {e}")
     return message_history
 
-def get_message_history_with_user(client: WebClient, channel, limit=100):
+def get_message_history_with_user(client: WebClient, channel, limit=30):
     message_history = []
     try:
         result = client.conversations_history(channel=channel, limit=limit)
