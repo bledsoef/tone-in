@@ -15,10 +15,9 @@ class AI:
         self.max_token = 200
 
 
+
     def getRating(self, message):
         prompt = "Rate this slack text from 0-20 on professionalism on tone and vocabulary, and only tell me the number, no words!:" + message
-
-
         response = openai.Completion.create(model=self.model, max_tokens=self.max_token, prompt=prompt,
                                             temperature=.2)
         for result in response.choices:
@@ -27,6 +26,9 @@ class AI:
             
             
             return result.text
+
+
+
 
 
     def getSummary(self, allChatText):
@@ -48,7 +50,11 @@ class TextAnalysis:
         self.listOfMessages = self.parseMessage(listOfMessages)
         self.total = 0
         self.engine = AI()
-        
+        self.scores = {}
+        self.chatcount = {}
+        self.converted_dict = {}
+        self.average = self.analyzeMessages()
+
         # Model for tone analysis
 
         self.tone_dict = {"nonchalant": "This type of language and tone in this chat is not appropriate for"
@@ -75,6 +81,17 @@ class TextAnalysis:
             resp = self.engine.getRating(message)
             try:
                 self.total += int(resp)
+                user = str(message.split(':')[0])
+                print("This is user", user)
+                if user not in self.scores:
+                    self.scores[user] = int(resp)
+                    self.chatcount[user] = 1
+                else:
+                    self.scores[user] = self.scores[user] + int(resp)
+                    self.chatcount[user] += 1
+                print(self.scores)
+                print(self.chatcount)
+
             except:
                 # print('BAD AI')
                 splace = 0
@@ -86,7 +103,25 @@ class TextAnalysis:
                 # print(resp[splace:])
 
         average = self.total // (len(self.listOfMessages))
-        return int(average*.90 )
+        # self.rank(self.scores, self.chatcount)
+        # self.rank(self.scores, self.chatcount)
+        return int(average*.90)
+
+    def rank(self, order):
+        self.analyzeMessages()
+        print(self.scores)
+        for user in self.scores:
+            self.scores[user] = round((self.scores[user]/(20 * self.chatcount[user]))*100)
+        sorted_scores = sorted(self.scores.items(), key=lambda x: x[1], reverse = True if order == "ascending" else False)
+        self.converted_dict = dict(sorted_scores)
+        print(self.converted_dict)
+        return self.converted_dict
+
+    def draw_rank(self):
+        self.rank("ascending")
+        "Name\tScore"
+        for i in self.converted_dict.items():
+            print("%s\t\t%s" % (i[0], i[1]))
 
     def parseMessage(self,oldmessage):
         
@@ -121,3 +156,28 @@ class TextAnalysis:
             return self.tone_dict["professional"]
         if tone_average in [16, 17, 18, 19, 20]:
             return self.tone_dict["very professional"]
+
+def main():
+    ai = AI()
+    slack_list = [["<@U04RC8WT7BN>Yo whats up yall", "John"],
+                  ["I won’t be in lab tomorrow <@U04RC8WT7BN>because I have dance rehearsals and I have informed my "
+                   "class that I will be on Monday night instead.", "John"],
+                  ["Yo, whats up yall?<@U04RC8WT7BN>", "Gina"],
+                  ["Yo, whats up yall!", "Gina"],
+                  ["Hi and good afternoon, everyone. Are lab hours scheduled for Sunday March 5?", "Nate"],
+                  ["What up bitches.<@U04RC8WT7BN>", "Nate"],
+                  ["Hi and good afternoon, "
+                   "everyone. Are lab hours scheduled for Sunday March 5 bitches?", "Ben"],
+                  ["Howdy People?<@U04RC8WT7BN>", "Ben"],
+                  ["howdy people?", "Ben"]]
+
+    tone = TextAnalysis(slack_list)
+
+    tone.draw_rank()
+    print(tone.average)
+    print(tone.toneResponse())
+    print('average:',tone.average)
+    print(ai.getSummary(tone.parseMessage(slack_list)))
+    print(tone.toneResponse())
+
+main()
