@@ -10,7 +10,6 @@ from tone_back import TextAnalysis
 from multiprocessing import Process
 from dotenv import load_dotenv
 from time import sleep
-
 env_path = Path('.') / '.env'
 load_dotenv(dotenv_path=env_path)
 logger = logging.getLogger(__name__)
@@ -146,29 +145,7 @@ def on_message_sent(event, client: WebClient):
     chatA = TextAnalysis(history,'tone')
     chatA.toneResponse()
     if chatA.is_unprofessional(text):
-        client.chat_postEphemeral(channel=channel_id, user=user_id, blocks={
-	"blocks": [
-		{
-			"type": "header",
-			"text": {
-				"type": "plain_text",
-				"text": "Welcome to Revolution Channel",
-				"emoji": True
-			}
-		},
-		{
-			"type": "context",
-			"elements": [
-				{
-					"type": "plain_text",
-					"text": "1) Enter /tone-in-help to get started\n 2)yolo",
-					"emoji": True
-				}
-			]
-		}
-	]
-})
-
+        client.chat_postEphemeral(channel=channel_id, user=user_id, text='The tone of your message might not be very well suited for the general trends in this channel, but no worries! You can still edit it. Here is a sample of what you could edit to: \n ' + chatA.edit_professional(text))
 # @app.
 
 @app.event("member_joined_channel")
