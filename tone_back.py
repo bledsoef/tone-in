@@ -2,9 +2,9 @@ import os
 import openai
 from dotenv import load_dotenv
 import re
+import pandas as pd
 
 load_dotenv()
-
 
 # Load your API key from an environment variable or secret management service
 class AI:
@@ -14,10 +14,9 @@ class AI:
         self.temp = .4
         self.max_token = 200
 
-
-
     def getRating(self, message):
-        prompt = "Rate this slack text from 0-20 on professionalism on tone and vocabulary, and only tell me the number, no words!:" + message
+        prompt = "Rate this slack text from 0-20 on professionalism on tone and vocabulary, and only tell me the " \
+                 "number, no words!:" + message
         response = openai.Completion.create(model=self.model, max_tokens=self.max_token, prompt=prompt,
                                             temperature=.2)
         for result in response.choices:
@@ -26,7 +25,6 @@ class AI:
             
             
             return result.text
-
 
     def getSummary(self, allChatText):
         prompt = 'Provide a brief summary for the following chats with people names included.  : \n'
@@ -48,9 +46,8 @@ class AI:
         return response.choices[0].text
 
 
-
 class TextAnalysis:
-    def __init__(self, listOfMessages,purpose):
+    def __init__(self, listOfMessages, purpose):
         self.purpose = purpose
         self.listOfMessages = self.parseMessage(listOfMessages)
         # print("\tAfter Parse:\n",self.listOfMessages)
@@ -65,25 +62,17 @@ class TextAnalysis:
         # Model for tone analysis
 
         self.tone_dict = {"nonchalant": "This type of language and tone in this chat is not appropriate for"
-                                        " a professional or academic setting, and could be "
-                                        " as personal, sarcastic or even confrontational. ",
-                          "very casual": "Conversations in this chat may include personal anecdotes,"
-                                         " jokes, and sarcastic comments that are "
-                                         "not meant to be taken seriously. May include some offensive "
-                                         "language",
-                          "casual": "The tone of this chat is often playful and "
-                                    "may include jokes, memes, and GIFs. "
-                                    "Participants in the chat may use informal language and "
-                                    "emojis to express themselves.",
+                                        " a professional setting",
+                          "very casual": "Conversations in this chat may include jokes, and sarcastic comments that "
+                                         "are not very appropriate for professional setting",
+                          "casual": "Participants in the chat may use informal language which may or not be"
+                                    "suitable for a professional setting",
                           "professional": "The tone of this chat is appropriate "
                                           "for a professional or academic setting.",
-                          "very professional": "The tone is helpful and informative, "
-                                               "without any unnecessary or offensive language."
-                                               " Overall, the tone of this chat is appropriate for "
-                                               "a professional or customer service setting."}
+                          "very professional": "This chat exhibits a highly professional tone and follows "
+                                               "strong ethical communication suitable for a professional setting."}
 
     def analyzeMessages(self):
-        # print('\tin analyze:\n' ,self.listOfMessages)
         for message in self.listOfMessages:
             resp = self.engine.getRating(message)
             try:
@@ -99,17 +88,14 @@ class TextAnalysis:
             except:
                 # print('BAD AI')
                 splace = 0
-                for pos,char in enumerate(resp):
+                for pos, char in enumerate(resp):
                     if char.isdigit():
-                       splace = pos 
-                       break
+                        splace = pos
+                        break
                 self.total += int(resp[splace:])
-                # print(resp[splace:])
 
         average = self.total // (len(self.listOfMessages))
-        # self.rank(self.scores, self.chatcount)
-        # self.rank(self.scores, self.chatcount)
-        return int(average*.90)
+        return int(average * .90)
 
     def is_unprofessional(self, message):
         new_rating = self.engine.getRating(message)
@@ -121,23 +107,50 @@ class TextAnalysis:
         return self.engine.getSummary(self.listOfMessages)
         
 
-    def rank(self, order):
+    def ranking(self, order):
         self.analyzeMessages()
         for user in self.scores:
-            self.scores[user] = round((self.scores[user]/(20 * self.chatcount[user]))*100)
-        sorted_scores = sorted(self.scores.items(), key=lambda x: x[1], reverse = True if order == "ascending" else False)
+            self.scores[user] = round((self.scores[user] / (20 * self.chatcount[user])) * 100)
+        sorted_scores = sorted(self.scores.items(), key=lambda x: x[1], reverse=True if order == "ascending" else False)
         self.converted_dict = dict(sorted_scores)
         return self.converted_dict
 
-    def draw_rank(self, cend="ascending"):
-        self.rank(cend)
-        message = ""
-        for i in self.converted_dict.items():
-            message+=("%s\t\t%s" % (i[0], i[1])+"\n")
-        return message
+    def draw_rank(self, cend="descending", num=3):
+        self.ranking(cend)
+        # Calculate rank based on percentage score
+        rank = pd.Series(list(self.converted_dict.values())).rank(method='min',
+                                                                  ascending=False if cend == "ascending" else True
+                                                                  ).astype(int).apply(lambda
+                                                                                          x: f'{x}{["st", "nd", "rd"][x % 10 - 1] if x % 100 not in [11, 12, 13] and x % 10 in [1, 2, 3] else "th"}')
+        if cend == "descending":
+            rank = rank[::-1]
+        # Create DataFrame
+        df = pd.DataFrame(
+            {'Name': list(self.converted_dict.keys()),
+             'Percentage Score': [f'{score}%' for score in self.converted_dict.values()], 'Rank': rank})
 
-    def parseMessage(self,oldmessage):
-        
+        # Export to Excel
+        writer = pd.ExcelWriter('output.xlsx', engine='xlsxwriter')
+        df.head(num).to_excel(writer, sheet_name='Sheet1', index=False)
+
+        # Set column widths
+        worksheet = writer.sheets['Sheet1']
+        worksheet.set_column('A:A', 20)
+        worksheet.set_column('B:B', 20)
+        worksheet.set_column('C:C', 10)
+
+        # Set column titles and formatting
+        header_format = writer.book.add_format(
+            {'bold': True, 'align': 'center', 'valign': 'vcenter', 'bg_color': '#D9D9D9'})
+        worksheet.write('A1', 'Name', header_format)
+        worksheet.write('B1', 'Percentage Score', header_format)
+        worksheet.write('C1', 'Rank', header_format)
+
+        # Save and close the workbook
+        writer.close()
+
+    def parseMessage(self, oldmessage):
+
         new_slack_message = []
         for array in oldmessage:
             key = array[0]
@@ -153,16 +166,20 @@ class TextAnalysis:
     def edit_professional(self,message):
         print('channel tone',self.toneResponse)
         return self.engine.suggestAppropiate(message)
-        
+
+    def summaryResponse(self):
+        return self.engine.getSummary(self.listOfMessages)
+
     def toneResponse(self):
         tone_average = self.analyzeMessages()
+        print('I went here', tone_average)
         # print('REAL',tone_average)
 
         if tone_average in [0, 1, 2]:
             self.tone = [0, 1, 2]
             return self.tone_dict["nonchalant"]
-        if tone_average in [3,4, 5, 6]:
-            self.tone = [3,4, 5, 6]
+        if tone_average in [3, 4, 5, 6]:
+            self.tone = [3, 4, 5, 6]
             return self.tone_dict["very casual"]
         if tone_average in [7, 8, 9, 10]:
             self.tone = [7, 8, 9, 10]
@@ -174,27 +191,25 @@ class TextAnalysis:
             self.tone = [16, 17, 18, 19, 20]
             return self.tone_dict["very professional"]
 
-# def main():
-#     ai = AI()
-#     slack_list = [["<@U04RC8WT7BN>Yo whats up yall", "John"],
-#                   ["I won’t be in lab tomorrow <@U04RC8WT7BN>because I have dance rehearsals and I have informed my "
-#                    "class that I will be on Monday night instead.", "John"],
-#                   ["Yo, whats up yall?<@U04RC8WT7BN>", "Gina"],
-#                   ["Yo, whats up yall!", "Gina"],
-#                   ["Hi and good afternoon, everyone. Are lab hours scheduled for Sunday March 5?", "Nate"],
-#                   ["What up bitches.<@U04RC8WT7BN>", "Nate"],
-#                   ["Hi and good afternoon, "
-#                    "everyone. Are lab hours scheduled for Sunday March 5 bitches?", "Ben"],
-#                   ["Howdy People?<@U04RC8WT7BN>", "Ben"],
-#                   ["howdy people?", "Ben"]]
+def main():
+    ai = AI()
+    slack_list = [["<@U04RC8WT7BN>Yo whats up yall", "John"],
+                      ["I won’t be in lab tomorrow <@U04RC8WT7BN>because I have dance rehearsals and I have informed my "
+                       "class that I will be on Monday night instead.", "John"],
+                      ["Yo, whats up yall?<@U04RC8WT7BN>", "Gina"],
+                      ["Yo, whats up yall!", "Gina"],
+                      ["Hi and good afternoon, everyone. Are lab hours scheduled for Sunday March 5?", "Nate"],
+                      ["What up bitches.<@U04RC8WT7BN>", "Nate"],
+                      ["Hi and good afternoon, "
+                       "everyone. Are lab hours scheduled for Sunday March 5 bitches?", "Ben"],
+                      ["Howdy People?<@U04RC8WT7BN>", "Ben"],
+                      ["howdy people?", "Ben"]]
 
-#     tone = TextAnalysis(slack_list, "leaderboard")
+    # tone = TextAnalysis(slack_list, "summary")
+    # tone = TextAnalysis(slack_list, "leaderboard")
+    # print('response:', tone.toneResponse())
+    # print('average:', tone.average)
+    # tone.draw_rank()
+    # print(ai.getSummary(tone.parseMessage(slack_list)))
 
-#     tone.draw_rank()
-#     print(tone.average)
-#     print(tone.toneResponse())
-#     print('average:',tone.average)
-#     print(ai.getSummary(tone.parseMessage(slack_list)))
-#     print(tone.toneResponse())
-
-# main()
+main()
