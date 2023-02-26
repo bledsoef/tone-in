@@ -6,7 +6,6 @@ import pandas as pd
 
 load_dotenv()
 
-
 # Load your API key from an environment variable or secret management service
 class AI:
     def __init__(self):
@@ -16,24 +15,17 @@ class AI:
         self.max_token = 200
 
     def getRating(self, message):
-        prompt = "Rate this slack text from 0-20 on professionalism on tone and vocabulary, and only tell me the number, no words!:" + message
+        prompt = "Rate this slack text from 0-20 on professionalism on tone and vocabulary, and only tell me the " \
+                 "number, no words!:" + message
         response = openai.Completion.create(model=self.model, max_tokens=self.max_token, prompt=prompt,
                                             temperature=.2)
-        for result in response.choices:
-            res = result.text.replace('\n', '')
-            # print('prompts:',message,": results",res)
-
-            return result.text
+        return response.choices[0].text
 
     def getSummary(self, allChatText):
         prompt = 'Provide a brief summary for the following chats with people names included.  : \n'
         for chat in allChatText:
             prompt += chat + '\n'
-            # print(prompt)
-
         response = openai.Completion.create(model='text-davinci-003', max_tokens=400, prompt=prompt, temperature=.7)
-
-        # print(response.choices[0].text)
         return response.choices[0].text
 
 
@@ -52,22 +44,15 @@ class TextAnalysis:
         # Model for tone analysis
 
         self.tone_dict = {"nonchalant": "This type of language and tone in this chat is not appropriate for"
-                                        " a professional or academic setting, and could be "
-                                        " as personal, sarcastic or even confrontational. ",
-                          "very casual": "Conversations in this chat may include personal anecdotes,"
-                                         " jokes, and sarcastic comments that are "
-                                         "not meant to be taken seriously. May include some offensive "
-                                         "language",
-                          "casual": "The tone of this chat is often playful and "
-                                    "may include jokes, memes, and GIFs. "
-                                    "Participants in the chat may use informal language and "
-                                    "emojis to express themselves.",
+                                        " a professional setting",
+                          "very casual": "Conversations in this chat may include jokes, and sarcastic comments that "
+                                         "are not very appropriate for professional setting",
+                          "casual": "Participants in the chat may use informal language which may or not be"
+                                    "suitable for a professional setting",
                           "professional": "The tone of this chat is appropriate "
                                           "for a professional or academic setting.",
-                          "very professional": "The tone is helpful and informative, "
-                                               "without any unnecessary or offensive language."
-                                               " Overall, the tone of this chat is appropriate for "
-                                               "a professional or customer service setting."}
+                          "very professional": "This chat exhibits a highly professional tone and follows "
+                                               "strong ethical communication suitable for a professional setting."}
 
     def analyzeMessages(self):
 
@@ -199,21 +184,11 @@ def main():
                       ["Howdy People?<@U04RC8WT7BN>", "Ben"],
                       ["howdy people?", "Ben"]]
 
-    #tone = TextAnalysis(slack_list, "summary")
-    tone = TextAnalysis(slack_list, "leaderboard")
-    print('response:', tone.toneResponse())
-    print('average:', tone.average)
-    tone.draw_rank()
-    print(ai.getSummary(tone.parseMessage(slack_list)))
-
-
-
-
-#     tone.draw_rank()
-#     print(tone.average)
-#     print(tone.toneResponse())
-#     print('average:',tone.average)
-#     print(ai.getSummary(tone.parseMessage(slack_list)))
-#     print(tone.toneResponse())
+    # tone = TextAnalysis(slack_list, "summary")
+    # tone = TextAnalysis(slack_list, "leaderboard")
+    # print('response:', tone.toneResponse())
+    # print('average:', tone.average)
+    # tone.draw_rank()
+    # print(ai.getSummary(tone.parseMessage(slack_list)))
 
 main()
