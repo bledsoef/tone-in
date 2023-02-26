@@ -53,6 +53,7 @@ class TextAnalysis:
         self.scores = {}
         self.chatcount = {}
         self.converted_dict = {}
+        self.tone = []
         self.average = self.analyzeMessages()
 
         # Model for tone analysis
@@ -104,6 +105,12 @@ class TextAnalysis:
         # self.rank(self.scores, self.chatcount)
         return int(average*.90)
 
+    def is_unprofessional(self, message):
+        new_rating = self.engine.getRating(message)
+        if new_rating > self.tone[0]:
+            return False
+        return True
+
     def rank(self, order):
         self.analyzeMessages()
         for user in self.scores:
@@ -143,14 +150,19 @@ class TextAnalysis:
         # print('REAL',tone_average)
 
         if tone_average in [0, 1, 2]:
+            self.tone = [0, 1, 2]
             return self.tone_dict["nonchalant"]
         if tone_average in [3,4, 5, 6]:
+            self.tone = [3,4, 5, 6]
             return self.tone_dict["very casual"]
         if tone_average in [7, 8, 9, 10]:
+            self.tone = [7, 8, 9, 10]
             return self.tone_dict["casual"]
         if tone_average in [11, 12, 13, 14, 15]:
+            self.tone = [11, 12, 13, 14, 15]
             return self.tone_dict["professional"]
         if tone_average in [16, 17, 18, 19, 20]:
+            self.tone = [16, 17, 18, 19, 20]
             return self.tone_dict["very professional"]
 
 # def main():
