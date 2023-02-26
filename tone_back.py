@@ -1,4 +1,5 @@
 import os
+
 import openai
 from dotenv import load_dotenv
 
@@ -10,25 +11,38 @@ class AI:
     def __init__(self):
         openai.api_key = os.getenv("API_KEY")
         self.model = "text-davinci-003"
-        self.temp = .4
         self.max_token = 200
 
     def getRating(self, message):
-        prompt = "Rate this text from 0-20 on professionality and return only the number: " + message
-        print(prompt)
+        prompt = "Rate this slack text from 0-20 on professionalism on tone and vocabulary, and only tell me the number, no words!:" + message
+
 
         response = openai.Completion.create(model=self.model, max_tokens=self.max_token, prompt=prompt,
-                                            temperature=self.temp)
+                                            temperature=.4)
         for result in response.choices:
+            print('prompts:',message,": results",result.text)
             return result.text
 
 
-class ToneAnalysis:
+    def getSummary(self, allChatText):
+        prompt = 'Provide a brief summary for the following chats with people names included.  : \n'
+        for chat in allChatText:
+            prompt += chat + '\n'
+
+        response = openai.Completion.create(model='text-davinci-003',max_tokens=400,prompt=prompt, temperature=1)
+
+        for result in response.choices:
+
+            return result.text
+
+
+
+class TextAnalysis:
     def __init__(self, listOfMessages):
         self.listOfMessages = self.parseMessage(listOfMessages)
         self.total = 0
-        self.average = 0
         self.engine = AI()
+        self.average = self.analyzeMessages()
         # Model for tone analysis
 
         self.nonchalant = [0, 1, 2]
@@ -57,8 +71,15 @@ class ToneAnalysis:
     def analyzeMessages(self):
 
         for message in self.listOfMessages:
-            self.total += int(self.engine.getRating(message))
-        self.average = self.total // len(self.listOfMessages)
+            resp = self.engine.getRating(message)
+            try:
+                self.total += int(resp)
+            except:
+                print('BAD AI')
+
+        print(self.total,len(self.listOfMessages))
+        average = self.total // len(self.listOfMessages)
+        return int(average*.90 )
 
     def parseMessage(self, slack_message):
         for message in slack_message:
@@ -82,20 +103,35 @@ class ToneAnalysis:
 
 def main():
     ai = AI()
-    slack_list = ["Yo whats up yall",
-                  "I won’t be in lab tomorrow because I have dance rehearsals and I have informed my class that I will be on Monday night instead.",
-                  "Yo, whats up yall?",
-                  "Yo, whats up yall!",
-                  "Hi and good afternoon, everyone. Are lab hours scheduled for Sunday March 5?",
-                  "What up bitches.",
-                  "Rate this text from 1-20 on professionality and return only the number: Hi and good afternoon, everyone. Are lab hours scheduled for Sunday March 5 bitches?",
-                  "Howdy People?",
-                  "howdy people?"
-                  ]
-    tone = ToneAnalysis(slack_list)
-    tone.analyzeMessages()
-    print(tone.average)
+    slack_list = ['Anish Kharel: Good morning everyone, I hope everyone had a good weekend.',
+                  "Finn:But yes I think the plan was to nap on and off.",
+                  "Finn :If anyone prefers otherwise, we can figure something out.",
+                  "Anish Kharel:Yes,that what we did last time and it was perfectly fine.",
+                  "Daize Njounkeng: Have you guys already started brainstorming idea?",
+                  "Daize Njounkeng: Would you guys like to build something with Open Ai API?",
+                  "Anish Kharel: Yes, that sounds like alot of fun!"
+
+          ]
+
+    # slack_list = ["Daize Njounkeng:Hey I reached out to Moise should hear from him this evening.",
+    #               "Daize Njounkeng:Just making sure, we are going to take napsin the hackathon classrooms yes? Or we are planning on lodging somewhere.",
+    #               "Finn:I think we're all just gonna get coked out and not need to sleep",
+    #               "Finn:But yes I think the plan was to nap on and off.",
+    #               "Finn :If anyone prefers otherwise we can figure something out.",
+    #               "Slackbot:@moise dk has been added to the conversation by Daize Njounkeng.",
+    #               "Anish Kharel:yes that what we did last time",
+    #               "Anish Kharel:it wasn't the best but it was aight",
+    #               "Daize Njounkeng: So already started brainstorming application ideas.",
+    #               "Daize Njounkeng: Would you guys like to build something with Open Ai API?",
+    #               "Finn: That sounds interesting, what are you thinking?",
+    #               ]
+    tone = TextAnalysis(slack_list)
     print(tone.toneResponse())
+    print('average:',tone.average)
+    print(ai.getSummary(slack_list))
+    # print(tone.toneResponse())
 
 
+
+    # print(tone.parseMessage(["Hello", "<@U", "Howdy"]))
 main()
