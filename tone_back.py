@@ -105,15 +105,25 @@ class TextAnalysis:
             "very professional": "This chat exhibits a highly professional tone and follows strong ethical communication suitable for a professional setting."
         }
 
-    def parseMessage(self, messages):
+    def parseMessage(self, oldmessages):
         """
         Parses a list of messages to remove any leading or trailing whitespace.
 
         :param messages: the messages to parse
         :return: a list of parsed messages
         """
-        return [message.strip() for message in messages]
-
+        new_slack_message = []
+        for array in oldmessages:
+            key = array[0]
+            value = array[1]
+            if self.purpose == 'tone':
+                if not (key.endswith('has joined the channel') or key.endswith('has been added to the channel')):
+                    new_slack_message.append(key)
+            else:
+                new_slack_message.append(value+':'+key)
+        return new_slack_message
+        
+        
     def analyzeMessages(self):
         """
         Analyzes the messages and returns the average sentiment rating.
@@ -197,25 +207,23 @@ class TextAnalysis:
         df = pd.DataFrame(
             {'Name': list(self.converted_dict.keys()),
              'Percentage Score': [f'{score}%' for score in self.converted_dict.values()], 'Rank': rank})
-
-        # Export to Excel
         writer = pd.ExcelWriter('rank.xlsx', engine='xlsxwriter')
         df.head(num).to_excel(writer, sheet_name='Sheet1', index=False)
 
-        # Set column widths
+
+
         worksheet = writer.sheets['Sheet1']
         worksheet.set_column('A:A', 20)
         worksheet.set_column('B:B', 20)
         worksheet.set_column('C:C', 10)
 
-        # Set column titles and formatting
+                                                            # Set column titles and formatting
         header_format = writer.book.add_format(
             {'bold': True, 'align': 'center', 'valign': 'vcenter', 'bg_color': '#D9D9D9'})
         worksheet.write('A1', 'Name', header_format)
         worksheet.write('B1', 'Percentage Score', header_format)
         worksheet.write('C1', 'Rank', header_format)
 
-        # Save and close the workbook
         writer.close()
 
     def draw_graph(self,  cend="descending", num=3):
@@ -310,26 +318,3 @@ class TextAnalysis:
                 self.tone = [16, 17, 18, 19, 20]
                 return self.tone_dict["very professional"]
 
-# def main():
-#     ai = AI()
-#     slack_list = [["<@U04RC8WT7BN>Yo whats up yall", "John"],
-#                       ["I won’t be in lab tomorrow <@U04RC8WT7BN>because I have dance rehearsals and I have informed my "
-#                        "class that I will be on Monday night instead.", "John"],
-#                       ["Yo, whats up yall?<@U04RC8WT7BN>", "Gina"],
-#                       ["Yo, whats up yall!", "Gina"],
-#                       ["Hi and good afternoon, everyone. Are lab hours scheduled for Sunday March 5?", "Nate"],
-#                       ["What up bitches.<@U04RC8WT7BN>", "Nate"],
-#                       ["Hi and good afternoon, "
-#                        "everyone. Are lab hours scheduled for Sunday March 5 bitches?", "Ben"],
-#                       ["Howdy People?<@U04RC8WT7BN>", "Ben"],
-#                       ["howdy people?", "Ben"]]
-
-#     tone = TextAnalysis(slack_list, "summary")
-#     # tone = TextAnalysis(slack_list, "leaderboard")
-#     # print('response:', tone.toneResponse())
-#     # print('average:', tone.average)
-#     tone.draw_rank()
-#     tone.draw_graph()
-    # print(ai.getSummary(tone.parseMessage(slack_list)))
-
-# main()

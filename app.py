@@ -39,13 +39,12 @@ tones = {"nonchalant": "This type of language and tone in this chat is not appro
 def get_leaderboard(command, client:WebClient, ack, respond):
     ack()
     respond("Generating the leaderboard, this may take a moment...")
-    # history = get_message_history_with_user(client, command["channel_id"], limit=None)
-    # channelLeaderboard = TextAnalysis(history,'leaderboard')
-    # leaderboard = channelLeaderboard.draw_rank()
-    # respond(leaderboard)
+    print("hi")
+    history = get_message_history_with_user(client, command["channel_id"], limit=30)
+    channelLeaderboard = TextAnalysis(history, 'leaderboard')
+    channelLeaderboard.draw_rank()
+    print("hello")
     user_id = command["user_id"]
-    # slack_response = client.conversations_open(users=[user_id])
-    # channel = slack_response["channel"]
     filepath = "/home/fbledsoe/personal_projects/tone-in/rank.png"
     try:
         with open(filepath, 'rb') as f:
@@ -141,7 +140,9 @@ def get_summary(command, client, ack, respond):
     ack()
     respond("Generating summary, this may take a moment...")
     history = get_message_history_with_user(client, command["channel_id"], limit=30)
+    print("hello")
     chatSum = TextAnalysis(listOfMessages = history,purpose='summary')
+    print("Hello")
     summary = chatSum.summaryResponse()
     respond(summary)
 
