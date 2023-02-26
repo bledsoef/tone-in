@@ -1,11 +1,12 @@
 import os
+import re
 import logging
 from slack_bolt import App  
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 from slack_sdk.errors import SlackApiError
-from slack_sdk.rtm_v2 import RTMClient
 from slack_sdk.web import WebClient
 from pathlib import Path
+from tone_back import TextAnalysis
 from multiprocessing import Process
 from dotenv import load_dotenv
 from time import sleep
@@ -19,24 +20,30 @@ app = App(
     signing_secret=os.environ["SLACK_SIGNING_SECRET"]
 )
 
+# @app.command("/leaderboard")
+# def get_leaderboard(command, client, ack):
+    
+
 @app.command("/summary")
 def get_summary(command, client, ack, respond):
     ack()
-    print(command)
-    history = get_message_history_with_user(client, command["channel_id"], limit=10)
+    history = get_message_history_with_user(client, command["channel_id"], limit=None)
+
     for index, item in enumerate(history):
         if command["user_name"] in item[1]:
             history = history[1:index]
             break
-    print("Wassup")
-    # summary = history #apply some function to thus
-    # respond(summary)
+    chatSum = TextAnalysis(history,'summary')
+    summary = chatSum.summaryResponse()  #apply some function to thus
+    respond(summary)
 
 @app.command("/tone")
-def mention_bot(command, client, ack, respond):
+def get_tone(command, client, ack, respond):
     ack()
-    history = get_message_history(client, command["channel_id"])
-    respond("The current tone of this channel has been " + str(history) + " recently.")
+    history = get_message_history_with_user(client, command["channel_id"])
+    chatA = TextAnalysis(history,'tone')
+    output_Message = chatA.toneResponse()
+    respond(str(output_Message))
 
 
 @app.event("member_joined_channel")
@@ -54,42 +61,38 @@ def get_message_history(client, channel):
     try:
         result = client.conversations_history(channel=channel, limit=100)
         for message in result["messages"]:
-            message_history.append(message)
+            message_history.append(message["text"])
     except SlackApiError as e:
         print(f"Error: {e}")
-        return message_history
+    return message_history
 
-def get_message_history_with_user(client:WebClient, channel, limit=100):
+def get_message_history_with_user(client: WebClient, channel, limit=100):
     message_history = []
     try:
         result = client.conversations_history(channel=channel, limit=limit)
         messages = result["messages"]
         for message in messages:
             text = message["text"]
+            if "has joined the channel" in channel:
+                continue
+            user_ids = re.findall(r'(<@.*?>)', text)
+            if user_ids is not None:
+                user_names = []
+                for user_id in user_ids:
+                    user_id = user_id.replace("<@", "").replace(">", "")
+                    user_name = client.users_info(user=user_id).get("user")["real_name"]
+                    user_names.append(user_name)
+                i = 0
+                for user_id in user_ids:
+                    text = re.sub(user_id, user_names[i], text)
+                    i += 1
             user = message["user"]
             name = client.users_info(user=user).get("user")["real_name"]
             message_history.append([text,name])
     except SlackApiError as e:
+        print(e)
         print(message_history[0:4])
     return message_history
-
-# users_store = {}
-# def save_users(users_array):
-#     for user in users_array:
-#         # Key user info on their unique user ID
-#         user_id = user["id"]
-#         # Store the entire user object (you may not need all of the info)
-#         users_store[user_id] = user
-
-# def listen_for_status_change(app):
-#     print("hi")
-#     result = app.client.users_list()
-#     save_users(result)
-#     while True:
-#         for user in users_store:
-#             print(app.client.users_getPresence(user=user))
-
-
 
 if __name__ == "__main__":
     SocketModeHandler(app, os.environ["SLACK_APP_TOKEN"]).start()
