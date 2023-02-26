@@ -174,10 +174,9 @@ def help(command, client, ack, respond):
     
 @app.message("")
 def on_message_sent(event, client: WebClient):
-    print('Message\n')
+    print("Message")
     channel_id = event.get("channel")
     user_id = event.get("user")
-    print(user_id)
     if user_id in opted_out_users:
         return
     text = event.get("text")
@@ -188,33 +187,15 @@ def on_message_sent(event, client: WebClient):
     else:
         chatA = TextAnalysis(override_tone=admin_set_tones[event["channel"]])
         chatA.toneResponse()
-    print("hi")
     if chatA.is_unprofessional(text):
         print('We at chatA')
-        client.chat_postEphemeral(channel=channel_id, user=user_id, blocks=[
-        {
-			"type": "title",
-			"text": {
-				"type": "plain_text",
-				"text": "Tone check:"
-			}
-		},
-		{
-			"type": "divider"
-		},
-		{
-			"type": "section",
-			"text": {
-				"type": "mrkdwn",
-				"text": "*Your tone didn't match the channel tone, Here is a suggestion to help:*\n"+str(chatA.edit_professional(text).replace('\n',''))+"'",
-			}
-		}])
+        client.chat_postEphemeral(channel=channel_id, user=user_id, text="*The tone of your message might not be very well suited for the tone of this channel. But you can still edit it. Here is a suggestion to help:*\n"+str(chatA.edit_professional(text).replace('\n','')))
 		
 		
 # @app.
 
 @app.event("member_joined_channel")
-def user_join(event, client: WebClient, say):
+def user_join(event, client: WebClient, say, respond):
     history = get_message_history(client, event["channel"])
     chatA = TextAnalysis(history,'tone')
     tone = chatA.toneResponse()
