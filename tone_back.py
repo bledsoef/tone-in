@@ -165,7 +165,7 @@ class TextAnalysis:
 
     def getTone(self):
         """
-        Returns the tone of the messages.
+        Returns the tone of the messages and acts as a getter.
 
         :return: the tone of the messages
         """
