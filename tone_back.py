@@ -76,11 +76,8 @@ class TextAnalysis:
                         splace = pos
                         break
                 self.total += int(resp[splace:])
-                # print(resp[splace:])
 
         average = self.total // (len(self.listOfMessages))
-        # self.rank(self.scores, self.chatcount)
-        # self.rank(self.scores, self.chatcount)
         return int(average * .90)
 
     def is_unprofessional(self, message):
