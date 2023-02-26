@@ -20,13 +20,30 @@ class AI:
                  "number, no words!:" + message
         response = openai.Completion.create(model=self.model, max_tokens=self.max_token, prompt=prompt,
                                             temperature=.2)
-        return response.choices[0].text
+        for result in response.choices:
+            res = result.text.replace('\n','')
+            # print('prompts:',message,": results",res)
+            
+            
+            return result.text
 
     def getSummary(self, allChatText):
         prompt = 'Provide a brief summary for the following chats with people names included.  : \n'
         for chat in allChatText:
             prompt += chat + '\n'
-        response = openai.Completion.create(model='text-davinci-003', max_tokens=400, prompt=prompt, temperature=.7)
+            # print(prompt)
+
+        response = openai.Completion.create(model='text-davinci-003',max_tokens=200,prompt=prompt, temperature=.7)
+
+        # print(response.choices[0].text)
+        return response.choices[0].text
+    
+    def suggestAppropiate(self, old_message):
+        prompt = 'Can you turn this into a more professional message:' + old_message
+
+        response = openai.Completion.create(model=self.model, max_tokens=40, prompt=prompt,
+                                            temperature=.7)
+
         return response.choices[0].text
 
 
@@ -34,13 +51,14 @@ class TextAnalysis:
     def __init__(self, listOfMessages, purpose):
         self.purpose = purpose
         self.listOfMessages = self.parseMessage(listOfMessages)
+        # print("\tAfter Parse:\n",self.listOfMessages)
         self.total = 0
         self.engine = AI()
         self.scores = {}
         self.chatcount = {}
         self.converted_dict = {}
         self.tone = []
-        self.average = self.analyzeMessages()
+        # self.average = self.analyzeMessages()
 
         # Model for tone analysis
 
@@ -56,7 +74,6 @@ class TextAnalysis:
                                                "strong ethical communication suitable for a professional setting."}
 
     def analyzeMessages(self):
-
         for message in self.listOfMessages:
             resp = self.engine.getRating(message)
             try:
@@ -83,9 +100,13 @@ class TextAnalysis:
 
     def is_unprofessional(self, message):
         new_rating = self.engine.getRating(message)
-        if new_rating > self.tone[0]:
+        if int(new_rating) > self.tone[0]:
             return False
         return True
+    
+    def summaryResponse(self):
+        return self.engine.getSummary(self.listOfMessages)
+        
 
     def ranking(self, order):
         self.analyzeMessages()
@@ -167,14 +188,17 @@ class TextAnalysis:
         for array in oldmessage:
             key = array[0]
             value = array[1]
-
             if self.purpose == 'tone':
                 if not (key.endswith('has joined the channel') or key.endswith('has been added to the channel')):
                     new_slack_message.append(key)
             else:
-                new_slack_message.append(value + ':' + key)
-
+                new_slack_message.append(value+':'+key)
+        # print(new_slack_message)
         return new_slack_message
+
+    def edit_professional(self,message):
+        print('channel tone',self.toneResponse)
+        return self.engine.suggestAppropiate(message)
 
     def summaryResponse(self):
         return self.engine.getSummary(self.listOfMessages)
