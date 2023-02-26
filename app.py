@@ -14,7 +14,7 @@ from time import sleep
 env_path = Path('.') / '.env'
 load_dotenv(dotenv_path=env_path)
 logger = logging.getLogger(__name__)
-
+chatA: TextAnalysis = None
 app = App(
     token=os.environ["SLACK_BOT_TOKEN"],    
     signing_secret=os.environ["SLACK_SIGNING_SECRET"]
@@ -22,7 +22,7 @@ app = App(
 
 # @app.command("/leaderboard")
 # def get_leaderboard(command, client, ack):
-    
+activetone = []
 
 @app.command("/summary")
 def get_summary(command, client, ack, respond):
@@ -43,7 +43,15 @@ def get_tone(command, client, ack, respond):
     history = get_message_history_with_user(client, command["channel_id"])
     chatA = TextAnalysis(history,'tone')
     output_Message = chatA.toneResponse()
+    activetone = chatA.to
     respond(str(output_Message))
+    
+@app.event("message")
+def on_message_sent(event, client):
+    channel_id = event.get("channel")
+    user_id = event.get("user")
+    text = event.get("text")
+
 
 
 @app.event("member_joined_channel")
