@@ -193,12 +193,14 @@ def on_message_sent(event, client: WebClient):
 @app.event("member_joined_channel")
 def user_join(event, client: WebClient, say):
     history = get_message_history(client, event["channel"])
+    chatA = TextAnalysis(history,'tone')
+    tone = chatA.toneResponse()
     user_id = event["user"]
     slack_response = client.conversations_open(users=[user_id])
     channel = slack_response["channel"]
     channel_name = client.conversations_info(channel=event["channel"])["channel"]["name"]
     channel_id = channel["id"]
-    client.chat_postMessage(channel=channel_id, text=f"Welcome <@{user_id}>! I saw that you just joined the channel #{channel_name} " + str(history) +". Just keep that in mind while drafting your messages!")
+    client.chat_postMessage(channel=channel_id, text=f"Welcome <@{user_id}>! I saw that you just joined the channel #{channel_name} " + tone + ". Just keep that in mind while drafting your messages!")
 
 def get_message_history(client, channel):
     message_history = []
