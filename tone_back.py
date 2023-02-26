@@ -47,9 +47,11 @@ class AI:
 
 
 class TextAnalysis:
-    def __init__(self, listOfMessages, purpose):
+    def __init__(self, listOfMessages = None, purpose = None, override_tone = None):
         self.purpose = purpose
-        self.listOfMessages = self.parseMessage(listOfMessages)
+        self.override_tone = override_tone
+        if listOfMessages:
+            self.listOfMessages = self.parseMessage(listOfMessages)
         # print("\tAfter Parse:\n",self.listOfMessages)
         self.total = 0
         self.engine = AI()
@@ -106,6 +108,8 @@ class TextAnalysis:
     def summaryResponse(self):
         return self.engine.getSummary(self.listOfMessages)
         
+    def getTone(self):
+        return self.tone
 
     def ranking(self, order):
         self.analyzeMessages()
@@ -171,23 +175,22 @@ class TextAnalysis:
         return self.engine.getSummary(self.listOfMessages)
 
     def toneResponse(self):
-        tone_average = self.analyzeMessages()
-        print('I went here', tone_average)
-        # print('REAL',tone_average)
+        if not self.override_tone:
+            tone_average = self.analyzeMessages()
 
-        if tone_average in [0, 1, 2]:
+        if tone_average in [0, 1, 2] or self.override_tone == "nonchalant":
             self.tone = [0, 1, 2]
             return self.tone_dict["nonchalant"]
-        if tone_average in [3, 4, 5, 6]:
+        if tone_average in [3, 4, 5, 6] or self.override_tone == "very casual":
             self.tone = [3, 4, 5, 6]
             return self.tone_dict["very casual"]
-        if tone_average in [7, 8, 9, 10]:
+        if tone_average in [7, 8, 9, 10] or self.override_tone == "casual":
             self.tone = [7, 8, 9, 10]
             return self.tone_dict["casual"]
-        if tone_average in [11, 12, 13, 14, 15]:
+        if tone_average in [11, 12, 13, 14, 15] or self.override_tone == "professional":
             self.tone = [11, 12, 13, 14, 15]
             return self.tone_dict["professional"]
-        if tone_average in [16, 17, 18, 19, 20]:
+        if tone_average in [16, 17, 18, 19, 20] or self.override_tone == "very professional":
             self.tone = [16, 17, 18, 19, 20]
             return self.tone_dict["very professional"]
 
