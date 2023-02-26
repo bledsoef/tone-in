@@ -2,9 +2,9 @@ import os
 import openai
 from dotenv import load_dotenv
 import re
+import pandas as pd
 
 load_dotenv()
-
 
 # Load your API key from an environment variable or secret management service
 class AI:
@@ -107,7 +107,7 @@ class TextAnalysis:
         # self.rank(self.scores, self.chatcount)
         return int(average*.90)
 
-    def rank(self, order):
+    def ranking(self, order):
         self.analyzeMessages()
         print(self.scores)
         for user in self.scores:
@@ -117,11 +117,35 @@ class TextAnalysis:
         print(self.converted_dict)
         return self.converted_dict
 
-    def draw_rank(self):
-        self.rank("ascending")
-        "Name\tScore"
-        for i in self.converted_dict.items():
-            print("%s\t\t%s" % (i[0], i[1]))
+    def draw_rank(self, cend="ascending", num=2):
+        self.ranking(cend)
+        # Calculate rank based on percentage score
+        rank = pd.Series(list(self.converted_dict.values())).rank(method='min', ascending = False if cend == "ascending" else True
+).astype(int).apply(lambda
+                                                                                 x: f'{x}{["st", "nd", "rd"][x % 10 - 1] if x % 100 not in [11, 12, 13] and x % 10 in [1, 2, 3] else "th"}')
+        # Create DataFrame
+        df = pd.DataFrame(
+            {'Name': list(self.converted_dict.keys()), 'Percentage Score': [f'{score}%' for score in self.converted_dict.values()], 'Rank': rank})
+
+        # Export to Excel
+        writer = pd.ExcelWriter('output.xlsx', engine='xlsxwriter')
+        df.head(num).to_excel(writer, sheet_name='Sheet1', index=False)
+
+        # Set column widths
+        worksheet = writer.sheets['Sheet1']
+        worksheet.set_column('A:A', 20)
+        worksheet.set_column('B:B', 20)
+        worksheet.set_column('C:C', 10)
+
+        # Set column titles and formatting
+        header_format = writer.book.add_format(
+            {'bold': True, 'align': 'center', 'valign': 'vcenter', 'bg_color': '#D9D9D9'})
+        worksheet.write('A1', 'Name', header_format)
+        worksheet.write('B1', 'Percentage Score', header_format)
+        worksheet.write('C1', 'Rank', header_format)
+
+        # Save and close the workbook
+        writer.save()
 
     def parseMessage(self,oldmessage):
         
@@ -144,6 +168,7 @@ class TextAnalysis:
         
     def toneResponse(self):
         tone_average = self.analyzeMessages()
+        print('I went here', tone_average)
         # print('REAL',tone_average)
 
         if tone_average in [0, 1, 2]:
@@ -171,13 +196,12 @@ def main():
                   ["Howdy People?<@U04RC8WT7BN>", "Ben"],
                   ["howdy people?", "Ben"]]
 
-    tone = TextAnalysis(slack_list)
+    tone = TextAnalysis(slack_list, "summary")
 
-    tone.draw_rank()
-    print(tone.average)
-    print(tone.toneResponse())
+    print('response:', tone.toneResponse())
     print('average:',tone.average)
+    tone.draw_rank()
     print(ai.getSummary(tone.parseMessage(slack_list)))
-    print(tone.toneResponse())
+    # print(tone.toneResponse())
 
 main()
