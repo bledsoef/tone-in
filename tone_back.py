@@ -88,6 +88,8 @@ class TextAnalysis:
         # parse the messages and store them as a list
         if listOfMessages:
             self.listOfMessages = self.parseMessage(listOfMessages)
+        else:
+            self.listOfMessages = []
 
         self.total = 0
         self.engine = AI()
@@ -181,81 +183,22 @@ class TextAnalysis:
         """
         return self.tone
 
-    def ranking(self, order):
-        """
-        Returns the order of user in either ascending or descenting
-
-        :return: a ordered dict which is in the set order
-        """
+    def rank(self, order):
         self.analyzeMessages()
+        print(self.scores)
         for user in self.scores:
-            self.scores[user] = round((self.scores[user] / (20 * self.chatcount[user])) * 100)
-        sorted_scores = sorted(self.scores.items(), key=lambda x: x[1], reverse=True if order == "ascending" else False)
+            self.scores[user] = round((self.scores[user]/(20 * self.chatcount[user]))*100)
+        sorted_scores = sorted(self.scores.items(), key=lambda x: x[1], reverse = True if order == "ascending" else False)
         self.converted_dict = dict(sorted_scores)
+        print(self.converted_dict)
         return self.converted_dict
 
-    def draw_rank(self, cend="descending", num=3):
-        self.ranking(cend)
-        # Calculate rank based on percentage score
-        rank = pd.Series(list(self.converted_dict.values())).rank(method='min',
-                                                                  ascending=False if cend == "ascending" else True
-                                                                  ).astype(int).apply(lambda
-                                                                                          x: f'{x}{["st", "nd", "rd"][x % 10 - 1] if x % 100 not in [11, 12, 13] and x % 10 in [1, 2, 3] else "th"}')
-        if cend == "descending":
-            rank = rank[::-1]
-        # Create DataFrame
-        df = pd.DataFrame(
-            {'Name': list(self.converted_dict.keys()),
-             'Percentage Score': [f'{score}%' for score in self.converted_dict.values()], 'Rank': rank})
-        writer = pd.ExcelWriter('rank.xlsx', engine='xlsxwriter')
-        df.head(num).to_excel(writer, sheet_name='Sheet1', index=False)
-
-
-
-        worksheet = writer.sheets['Sheet1']
-        worksheet.set_column('A:A', 20)
-        worksheet.set_column('B:B', 20)
-        worksheet.set_column('C:C', 10)
-
-                                                            # Set column titles and formatting
-        header_format = writer.book.add_format(
-            {'bold': True, 'align': 'center', 'valign': 'vcenter', 'bg_color': '#D9D9D9'})
-        worksheet.write('A1', 'Name', header_format)
-        worksheet.write('B1', 'Percentage Score', header_format)
-        worksheet.write('C1', 'Rank', header_format)
-
-        writer.close()
-
-    def draw_graph(self,  cend="descending", num=3):
-
-        self.ranking(cend)
-        rank = pd.Series(list(self.converted_dict.values())).rank(method='min',
-                                                                  ascending=False if cend == "ascending" else True
-                                                                  ).astype(int).apply(lambda
-                                                                                          x: f'{x}{["st", "nd", "rd"][x % 10 - 1] if x % 100 not in [11, 12, 13] and x % 10 in [1, 2, 3] else "th"}')
-        if cend == "descending":
-            rank = rank[::-1]
-        df = pd.DataFrame(
-            {'Name': list(self.converted_dict.keys()),
-             'Percentage Score': [f'{score}%' for score in self.converted_dict.values()], 'Rank': rank})
-        # Set style
-        plt.style.use('ggplot')
-
-        # Set the slack colors for the bars
-        colors = ["#36C5F0", '#E01E5A', '#ECB22E', '#2EB67D']
-
-        # Plot horizontal bar graph
-        fig, ax = plt.subplots()
-        ax.bar(df['Name'], df['Percentage Score'], align='center', color = colors)
-
-        # Set x and y labels and title
-        ax.set_xlabel('Percentage Score')
-        ax.set_ylabel('Name')
-        ax.set_title('Leader Board')
-
-        # Show the plot
-        plt.savefig('rank.png')
-        plt.show()
+    def draw_rank(self, cend="ascending"):
+        self.rank(cend)
+        message = ""
+        for i in self.converted_dict.items():
+            message+=("%s\t\t%s" % (i[0], str(i[1])+"%")+"\n")
+        return message
 
     def edit_professional(self, message):
         """

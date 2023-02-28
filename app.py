@@ -36,44 +36,13 @@ tones = {"nonchalant": "This type of language and tone in this chat is not appro
                                                "strong ethical communication suitable for a professional setting."}
 
 @app.command("/leaderboard")
-def get_leaderboard(command, client:WebClient, ack, respond):
+def get_leaderboard(command, client, ack, respond):
     ack()
     respond("Generating the leaderboard, this may take a moment...")
-    print("hi")
-    history = get_message_history_with_user(client, command["channel_id"], limit=30)
-    channelLeaderboard = TextAnalysis(history, 'leaderboard')
-    channelLeaderboard.draw_rank()
-    print("hello")
-    user_id = command["user_id"]
-    filepath = "/home/fbledsoe/personal_projects/tone-in/rank.png"
-    try:
-        with open(filepath, 'rb') as f:
-            response = client.files_upload(
-                channels=user_id, 
-                file=f, 
-                filename="rank.png", 
-                initial_comment="Leaderboard")
-            image_url  = response['file']['url_private']
-            print(image_url)
-    except SlackApiError as e:
-        print(f"Error sending image: {e}")
-    try:
-        response = client.chat_postMessage(
-            channel=user_id,
-            text="Leaderboard",
-            blocks= [{
-                "type": "image",
-                "title": {
-                    "type": "plain_text",
-                    "text": "Please enjoy this photo of a kitten"
-                },
-                "image_url": image_url,
-                "alt_text": "An incredibly cute kitten."
-                }])
-    except SlackApiError as e:
-        print(f"Error:{e}")
-
-
+    history = get_message_history_with_user(client, command["channel_id"], limit=25)
+    channelLeaderboard = TextAnalysis(history,'leaderboard')
+    leaderboard = channelLeaderboard.draw_rank("ascending")
+    respond(leaderboard)
 
 @app.command("/off")
 def opt_out(respond, client, ack, command):
@@ -105,8 +74,6 @@ def set_tone(respond, client, ack, command):
     admin_set_tones[command["channel_id"]] = tone
     respond("Tone set to " + tone + ".")
 
-    
-
 @app.command("/clear_tone")
 def clear_tone(respond, client, ack, command):
     ack()
@@ -121,8 +88,6 @@ def clear_tone(respond, client, ack, command):
 
     admin_set_tones.pop(command["channel_id"])
     respond("Admin tone successfully removed!")
-    
-
 
 @app.command("/on")
 def opt_in(respond, client, ack, command):
@@ -140,9 +105,7 @@ def get_summary(command, client, ack, respond):
     ack()
     respond("Generating summary, this may take a moment...")
     history = get_message_history_with_user(client, command["channel_id"], limit=30)
-    print("hello")
     chatSum = TextAnalysis(listOfMessages = history,purpose='summary')
-    print("Hello")
     summary = chatSum.summaryResponse()
     respond(summary)
 
@@ -183,7 +146,7 @@ def on_message_sent(event, client: WebClient):
     text = event.get("text")
     history = get_message_history_with_user(client, event["channel"])
     if event["channel"] not in admin_set_tones:
-        chatA = TextAnalysis(history,'tone')
+        chatA = TextAnalysis(listOfMessages=history,purpose='tone')
         chatA.toneResponse()
     else:
         chatA = TextAnalysis(override_tone=admin_set_tones[event["channel"]])
@@ -217,7 +180,7 @@ def get_message_history(client, channel):
         print(f"Error: {e}")
     return message_history
 
-def get_message_history_with_user(client: WebClient, channel, limit=30):
+def get_message_history_with_user(client: WebClient, channel, limit=20):
     message_history = []
     try:
         result = client.conversations_history(channel=channel, limit=limit)
